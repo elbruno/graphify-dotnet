@@ -59,3 +59,47 @@ The Python source (safishamsi/graphify) uses tree-sitter for structural extracti
 - GitHub Models offers free tier access to GPT-4, Claude, and other models via GitHub token
 - Consistent interface (IPipelineStage<DetectedFile, ExtractionResult>) allows easy swapping
 
+### 2026-04-06: MCP Stdio Server Implementation
+
+**What:** Implemented MCP (Model Context Protocol) stdio server in Graphify.Mcp that exposes knowledge graph operations via the ModelContextProtocol NuGet package.
+
+**Key Decisions:**
+- **ModelContextProtocol NuGet (v0.*):** Used official C# SDK for MCP with stdio transport for JSON-RPC communication over stdin/stdout
+- **Tool auto-discovery:** Decorated GraphTools methods with `[McpServerTool]` and `[Description]` attributes for automatic registration via `WithToolsFromAssembly()`
+- **Hosting infrastructure:** Added Microsoft.Extensions.Hosting (v10.*) and Microsoft.Extensions.DependencyInjection (v10.*) for proper DI and lifecycle management
+- **Graph loading:** Loads pre-built KnowledgeGraph from JSON file (from JsonExporter output) at startup, registers as singleton
+- **Logging to stderr:** Configured console logging to stderr only (stdout reserved for MCP JSON-RPC protocol)
+
+**Implemented Tools:**
+1. **query** — Search nodes/edges by term (ID, label, type), returns matching nodes with degree and connections (limit: 10)
+2. **path** — Find shortest path between two nodes using BFS algorithm, returns path nodes and length
+3. **explain** — Explain a node's role, connections, and statistics (incoming/outgoing edges, degree, community)
+4. **communities** — List all communities or query specific community members, ordered by degree
+5. **analyze** — Run graph analysis: top nodes by degree, node types distribution, relationship types, isolated nodes, insights
+
+**Path Finding:**
+- Initially attempted QuikGraph's `UndirectedBreadthFirstSearchAlgorithm` but encountered type mismatches (needs IUndirectedGraph, we have BidirectionalGraph)
+- Simplified to manual BFS implementation using KnowledgeGraph.GetNeighbors() — works for directed graphs, cleaner code
+- Returns full path with node IDs, labels, and types in JSON format
+
+**Design Patterns:**
+- **Pragmatic MCP adoption:** Checked API surface of ModelContextProtocol package before implementation, adapted to actual SDK patterns (not assumptions)
+- **JSON-only tool responses:** All tools return JSON strings (not objects) for consistent MCP message format
+- **Error handling in tools:** Each tool catches exceptions and returns JSON error responses instead of throwing
+- **File-scoped types:** Used file-scoped `GraphJsonData` record for internal graph deserialization
+
+**Usage:**
+```bash
+Graphify.Mcp.exe <path-to-graph.json> [--verbose]
+```
+
+**Why MCP:**
+- Standardizes tool exposure for LLM agents (Claude Desktop, Copilot, VS Code)
+- stdio transport enables local embedding in agent workflows
+- Clean separation: graph operations live in core library, MCP bindings are thin wrapper layer
+
+**Next Steps:**
+- Add JsonExporter implementation to generate graph.json files from KnowledgeGraph
+- Consider adding resource endpoints for graph metadata and statistics
+- Add prompt templates for common graph queries
+
