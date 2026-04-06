@@ -6,6 +6,8 @@
 
 🔍 **Build AI-powered knowledge graphs from any codebase.** Understand structure you didn't know was there.
 
+> 💡 **Origin story** — This project traces back to [Andrej Karpathy's tweet](https://x.com/karpathy/status/2039805659525644595) on using LLMs to build personal knowledge bases: ingesting raw sources, compiling them into structured Markdown wikis, and navigating knowledge through graph views instead of keyword search. That idea inspired [graphify](https://github.com/safishamsi/graphify) by [@safishamsi](https://github.com/safishamsi), which was then [showcased by @socialwithaayan](https://x.com/socialwithaayan/status/2041192946369007924) — and that's what kicked off this .NET port.
+
 graphify-dotnet is a .NET 10 port of the Python graphify project — an AI knowledge graph builder for codebases. It reads your files (code, docs, papers, images), extracts concepts and relationships through AST parsing and semantic analysis, builds a knowledge graph with community detection, and exports to multiple formats. Navigate codebases by structure instead of keyword search.
 
 ## Features
@@ -162,6 +164,7 @@ This project is licensed under the MIT License. See [LICENSE](LICENSE) file for 
 
 ## Acknowledgments
 
-Inspired by [this tweet](https://x.com/socialwithaayan/status/2041192946369007924) by @socialwithaayan showcasing [graphify](https://github.com/safishamsi/graphify) by @safishamsi — an AI knowledge graph builder for codebases.
+- [Andrej Karpathy's tweet](https://x.com/karpathy/status/2039805659525644595) on LLM-powered personal knowledge bases — the original idea that started the chain.
+- [This tweet](https://x.com/socialwithaayan/status/2041192946369007924) by @socialwithaayan showcasing [graphify](https://github.com/safishamsi/graphify) by @safishamsi — which directly inspired this .NET port.
 
 This project is a .NET 10 port of [safishamsi/graphify](https://github.com/safishamsi/graphify), reimagined with C# idioms, .NET 10 features, and the Microsoft.Extensions.AI abstraction layer.
