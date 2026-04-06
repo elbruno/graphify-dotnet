@@ -256,3 +256,46 @@
 - Output: Same graph with `GraphNode.Community` set for all nodes.
 - Downstream stages (analyze, report) can use `GetNodesByCommunity()`, `CalculateCohesion()`, and `CalculateModularity()` for insights.
 
+### 2026-04-06: JSON Graph Exporter Implementation
+
+**Context**: Implemented JSON export functionality to serialize KnowledgeGraph instances to JSON format compatible with the Python graphify implementation. This is the final stage in the pipeline (export).
+
+**What I Built**:
+- **IGraphExporter interface updates**:
+  - Added `string Format { get; }` property to identify exporter type
+  - Added `Task ExportAsync(KnowledgeGraph, string, CancellationToken)` method signature
+- **JsonExporter class**: Full implementation with NetworkX node_link_data compatibility
+  - **Format property**: Returns "json"
+  - **ExportAsync method**: Serializes graph to JSON with nodes, edges, and metadata sections
+  - **DTOs**: NodeDto, EdgeDto, ExportMetadataDto, GraphExportDto with proper JsonPropertyName attributes
+  - **Output structure**:
+    ```json
+    {
+      "nodes": [{ "id": "...", "label": "...", "type": "...", "community": 0, "file_path": "...", "language": "...", "confidence": "EXTRACTED", "metadata": {} }],
+      "edges": [{ "source": "...", "target": "...", "relationship": "...", "weight": 1.0, "confidence": "EXTRACTED", "metadata": {} }],
+      "metadata": { "node_count": N, "edge_count": M, "community_count": C, "generated_at": "2026-04-06T..." }
+    }
+    ```
+
+**Technical Decisions**:
+- **System.Text.Json**: Used built-in JSON serialization (NOT Newtonsoft.Json), matching project standards
+- **Async file I/O**: FileStream with `useAsync: true` and buffer size 4096 for efficient large graph export
+- **Indented formatting**: WriteIndented=true for human-readable output (debugging, version control)
+- **Snake_case JSON properties**: Used `JsonPropertyName` attributes to match Python's NetworkX format (node_count, file_path, etc.)
+- **CamelCase fallback**: `JsonNamingPolicy.CamelCase` for non-attributed properties
+- **Null handling**: `JsonIgnoreCondition.WhenWritingNull` to omit optional fields when not set
+- **Community counting**: Distinct count of non-null Community values (0 if no clustering performed yet)
+- **Confidence serialization**: Converted enum to uppercase string ("EXTRACTED", "INFERRED", "AMBIGUOUS") matching Python constants
+- **Directory creation**: Auto-creates output directory if it doesn't exist
+- **Sealed DTOs**: All DTOs are sealed records for immutability and performance
+
+**Python Compatibility**:
+- Matches Python's `to_json()` function output from graphify/export.py (lines 264-275)
+- Uses NetworkX's `node_link_data()` structure: nodes list + edges list (called "links" in NetworkX, but we use "edges" for clarity)
+- Python includes hyperedges in export; we don't support hyperedges yet (future enhancement)
+- Confidence score mapping: Python defaults to EXTRACTED=1.0, INFERRED=0.5, AMBIGUOUS=0.2 (we export as strings, consumers can map if needed)
+
+**Build Verification**: `dotnet build src/Graphify/Graphify.csproj` succeeds with no errors or warnings.
+
+**Committed**: feat(export): implement JSON graph exporter (commit b162683)
+
