@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Graphify.Integration.Tests")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+22073f4e9ad4738ca91efae4910ce4df128929ed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+2e1a3807be88a4a565a901b0ad718ee1ec3b8da2")]
 [assembly: System.Reflection.AssemblyProductAttribute("Graphify.Integration.Tests")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Graphify.Integration.Tests")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

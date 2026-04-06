@@ -1,9 +1,12 @@
+using System.ClientModel;
 using Microsoft.Extensions.AI;
+using OpenAI;
 
 namespace Graphify.Sdk;
 
 /// <summary>
 /// Factory for creating IChatClient instances configured for GitHub Models API.
+/// GitHub Models uses an OpenAI-compatible API format.
 /// </summary>
 public static class GitHubModelsClientFactory
 {
@@ -16,30 +19,15 @@ public static class GitHubModelsClientFactory
     public static IChatClient Create(CopilotExtractorOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
-        
+
         if (string.IsNullOrWhiteSpace(options.ApiKey))
         {
             throw new ArgumentException("ApiKey is required for GitHub Models API access.", nameof(options));
         }
 
-        // Note: Microsoft.Extensions.AI.OpenAI package is required for OpenAI-compatible endpoints
-        // This creates a client using the OpenAI-compatible API format that GitHub Models supports
-        // The actual implementation would use Microsoft.Extensions.AI.OpenAI.OpenAIChatClient
-        // but we're keeping this as a placeholder factory for now since the exact package
-        // reference needs to be added to the project.
-        
-        // TODO: Add Microsoft.Extensions.AI.OpenAI package reference and implement:
-        // return new OpenAIChatClient(
-        //     new OpenAIClientOptions 
-        //     { 
-        //         Endpoint = new Uri(options.Endpoint),
-        //         ApiKey = options.ApiKey
-        //     },
-        //     model: options.ModelId
-        // ).AsChatClient();
-
-        throw new NotImplementedException(
-            "GitHub Models client creation requires Microsoft.Extensions.AI.OpenAI package. " +
-            "Add the package reference and implement OpenAIChatClient configuration.");
+        var credential = new ApiKeyCredential(options.ApiKey);
+        var clientOptions = new OpenAIClientOptions { Endpoint = new Uri(options.Endpoint) };
+        var client = new OpenAIClient(credential, clientOptions);
+        return client.GetChatClient(options.ModelId).AsIChatClient();
     }
 }

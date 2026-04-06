@@ -144,3 +144,36 @@ Graphify.Mcp.exe <path-to-graph.json> [--verbose]
 - Marketing artifacts ready for team review and external distribution
 - Image prompts ready for designer/agency hand-off
 
+### 2026-04-06: Azure OpenAI + Ollama Provider Factories (Features 2 & 3)
+
+**What:** Implemented multi-provider IChatClient support in Graphify.Sdk — Azure OpenAI, Ollama/local models, and fixed the existing GitHub Models stub.
+
+**Key Decisions:**
+- **Azure OpenAI:** Uses `Azure.AI.OpenAI` (2.*) + `Microsoft.Extensions.AI.OpenAI` (10.*). Factory creates `AzureOpenAIClient` with API key credential, gets deployment-specific `ChatClient`, then calls `.AsIChatClient()` for the standard abstraction.
+- **GitHub Models (fixed):** Uses `OpenAI` client library (pulled in by Microsoft.Extensions.AI.OpenAI) with custom endpoint pointing to `https://models.inference.ai.azure.com`. Same `.AsIChatClient()` pattern. Replaced the `NotImplementedException` stub.
+- **Ollama:** Uses `OllamaSharp` (5.*). `OllamaApiClient` implements `IChatClient` natively — no `.AsIChatClient()` extension needed. Just construct and return.
+- **Unified factory:** `ChatClientFactory.Create(AiProviderOptions)` dispatches to the correct provider factory via pattern match on `AiProvider` enum. Validates required fields per provider (e.g., AzureOpenAI needs Endpoint + ApiKey + DeploymentName).
+- **Options as records:** `AzureOpenAIOptions` and `OllamaOptions` are immutable records. `AiProviderOptions` is a flat record covering all providers with nullable fields.
+
+**Package Versions Added:**
+- `Azure.AI.OpenAI` 2.*
+- `Microsoft.Extensions.AI.OpenAI` 10.*
+- `OllamaSharp` 5.*
+
+**API Surface:**
+- `OllamaSharp.OllamaApiClient` implements `IChatClient` directly (no wrapper needed)
+- `OpenAI.OpenAIClient` + `Microsoft.Extensions.AI.OpenAI` provides `.AsIChatClient()` extension on `ChatClient`
+- `Azure.AI.OpenAI.AzureOpenAIClient` inherits from `OpenAIClient`, so same extension chain works
+
+**Files Created:**
+- `AzureOpenAIOptions.cs` — Config record for Azure OpenAI
+- `AzureOpenAIClientFactory.cs` — Factory using Azure.AI.OpenAI
+- `OllamaOptions.cs` — Config record with sensible defaults (localhost:11434, llama3.2)
+- `OllamaClientFactory.cs` — Factory using OllamaSharp
+- `ChatClientFactory.cs` — Unified factory + AiProvider enum + AiProviderOptions record
+
+**Files Modified:**
+- `Graphify.Sdk.csproj` — Added 3 new package references
+- `GitHubModelsClientFactory.cs` — Replaced NotImplementedException with working OpenAI client code
+
+

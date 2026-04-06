@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v10.0": {
-      "Graphify.Cli/1.0.0": {
+      "Graphify.Cli/0.1.0": {
         "dependencies": {
           "Graphify": "1.0.0",
           "System.CommandLine": "2.0.5"
@@ -165,7 +165,7 @@
     }
   },
   "libraries": {
-    "Graphify.Cli/1.0.0": {
+    "Graphify.Cli/0.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

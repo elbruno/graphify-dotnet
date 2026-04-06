@@ -5,10 +5,10 @@
   },
   "projects": {
     "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\Graphify.Cli.csproj": {
-      "version": "1.0.0",
+      "version": "0.1.0",
       "restore": {
         "projectUniqueName": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\Graphify.Cli.csproj",
-        "projectName": "Graphify.Cli",
+        "projectName": "graphify-dotnet",
         "projectPath": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\Graphify.Cli.csproj",
         "packagesPath": "C:\\Users\\brunocapuano\\.nuget\\packages\\",
         "outputPath": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\obj\\",
@@ -405,9 +405,21 @@
         "net10.0": {
           "targetAlias": "net10.0",
           "dependencies": {
+            "Azure.AI.OpenAI": {
+              "target": "Package",
+              "version": "[2.*, )"
+            },
             "Microsoft.Extensions.AI": {
               "target": "Package",
               "version": "[10.*, )"
+            },
+            "Microsoft.Extensions.AI.OpenAI": {
+              "target": "Package",
+              "version": "[10.*, )"
+            },
+            "OllamaSharp": {
+              "target": "Package",
+              "version": "[5.*, )"
             }
           },
           "imports": [
