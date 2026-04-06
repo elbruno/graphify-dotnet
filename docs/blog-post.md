@@ -1,7 +1,8 @@
 # I Built a .NET 10 Knowledge Graph Builder (Inspired by Karpathy)
 
 ![Code transforming into an interactive knowledge graph with glowing nodes and edges](images/hero-image.png)
-<!-- 🎨 Image prompt (16:9): A futuristic visualization showing a C# code snippet on the left side transforming into a glowing knowledge graph on the right. The code appears in a modern terminal window with syntax highlighting (blue, orange, green). Curved arrows and light particles flow from the code toward a 3D network graph made of interconnected glowing nodes and edges in deep purple, cyan, and gold. The nodes represent code elements (functions, classes, imports). The background is a dark gradient (navy to dark purple) with subtle geometric patterns. A .NET logo and "Graphify" text float in the composition. High-quality, cinematic lighting, 4K detail. -->
+
+> 🎨 **Image prompt (16:9 — Hero):** A futuristic visualization showing a C# code snippet on the left side transforming into a glowing knowledge graph on the right. The code appears in a modern terminal window with syntax highlighting (blue, orange, green). Curved arrows and light particles flow from the code toward a 3D network graph made of interconnected glowing nodes and edges in deep purple, cyan, and gold. The nodes represent code elements (functions, classes, imports). The background is a dark gradient (navy to dark purple) with subtle geometric patterns. A .NET logo and "Graphify" text float in the composition. High-quality, cinematic lighting, 4K detail. Style: modern tech visualization, clean, professional.
 
 ## The Tweet That Started It All
 
@@ -85,7 +86,8 @@ A knowledge graph changes that. Suddenly you see the *shape* of your system. You
 And because it's built from LLM-powered extraction, the graph understands *meaning*, not just syntax. It sees that your `Repository` class is about data access. It connects concepts across files. It finds hidden relationships.
 
 ![Interactive knowledge graph in a vis.js interface showing code structure with multiple export format options](images/viz-image.png)
-<!-- 🎨 Image prompt (1:1): A close-up 3D render of an intricate knowledge graph network. Nodes in the center are large and detailed (various colors: cyan, magenta, yellow, orange). Edges are glowing threads connecting them. Dozens of smaller nodes radiate outward, creating depth. The graph rotates slightly, suggesting interactivity. A subtle "Graphify" watermark or logo in one corner. Background: dark gradient with occasional light flares and bokeh. The overall effect is sophisticated, scientific, beautiful. Style: 3D render, cinematic, high detail, node-link graph visualization. -->
+
+> 🎨 **Image prompt (1:1 — Social):** A close-up 3D render of an intricate knowledge graph network. Nodes in the center are large and detailed (various colors: cyan, magenta, yellow, orange). Edges are glowing threads connecting them. Dozens of smaller nodes radiate outward, creating depth. The graph rotates slightly, suggesting interactivity. A subtle "Graphify" watermark or logo in one corner. Background: dark gradient with occasional light flares and bokeh. The overall effect is sophisticated, scientific, beautiful. Style: 3D render, cinematic, high detail, node-link graph visualization.
 
 ## Getting Started
 
