@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Graphify.Mcp")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+6d9b27c33d71b4dbefba4b5980299bec68ce3718")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0a47894550cf250231a62262c0d23fbd6e7a0a7f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Graphify.Mcp")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Graphify.Mcp")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
