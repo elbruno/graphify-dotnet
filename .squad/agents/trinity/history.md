@@ -350,3 +350,78 @@
 
 **Committed**: feat(pipeline): implement Analyzer for graph insights and analysis (commit 29ff1fe)
 
+### 2026-04-06: Interactive HTML Exporter with vis.js Implementation
+
+**Context**: Implemented interactive HTML visualization export using vis.js network library. This provides a browser-based graph exploration UI matching the Python graphify implementation. This is an alternative export format alongside JSON and future formats.
+
+**What I Built**:
+- **HtmlTemplate class**: Static internal class containing the complete HTML template
+  - **CommunityColors**: 10-color palette matching Python implementation exactly
+  - **MaxNodesForVisualization**: Safety limit of 5,000 nodes to prevent browser performance issues
+  - **Generate()**: Main method that produces complete HTML document with embedded JSON data
+  - **GetStyles()**: Dark theme CSS matching Python's styling (dark background, sidebar, search, legend)
+  - **GetScript()**: JavaScript for vis.js network initialization, search, filtering, and interactivity
+- **HtmlExporter class**: Implements IGraphExporter interface
+  - **ExportAsync()**: Main export method that:
+    - Validates graph size (<5000 nodes)
+    - Builds community map (nodeId → communityId)
+    - Calculates node degrees and max degree for proportional sizing
+    - Generates vis.js node data (color, size, label, metadata)
+    - Generates vis.js edge data (confidence-based styling, dashed for INFERRED/AMBIGUOUS)
+    - Builds legend data (community colors, labels, counts)
+    - Serializes to JSON and embeds in HTML template
+    - Writes self-contained HTML file
+  - **BuildVisNodes()**: Converts GraphNode to vis.js node format
+    - Node size: 10-40 range, proportional to degree (10 + 30 * degree/maxDegree)
+    - Node color: Community-based from 10-color palette
+    - Label visibility: Only show labels for high-degree nodes (>15% of max) to reduce clutter
+    - Click-to-inspect: Stores type, community, source file, degree in node metadata
+  - **BuildVisEdges()**: Converts GraphEdge to vis.js edge format
+    - Solid lines for EXTRACTED confidence (width 2, opacity 0.7)
+    - Dashed lines for INFERRED/AMBIGUOUS confidence (width 1, opacity 0.35)
+    - Edge title shows relationship and confidence on hover
+  - **BuildLegend()**: Creates community legend with colors, labels, and node counts
+  - **SanitizeLabel()**: Security sanitization matching Python graphify/security.py
+    - Strips control characters
+    - Removes HTML/script tags with regex
+    - Limits length to 200 chars (configurable)
+  - **CommunityLabels property**: Optional dictionary for custom community names
+
+**Technical Decisions**:
+- **vis.js from CDN**: Uses unpkg.com CDN for vis-network standalone UMD bundle (no build step, zero dependencies)
+- **Self-contained HTML**: All CSS/JS embedded in single file for easy sharing and viewing
+- **forceAtlas2Based physics**: Vis.js algorithm for force-directed graph layout with configurable parameters (gravity, spring length, damping)
+- **Stabilization strategy**: Physics enabled for 200 iterations, then disabled to freeze layout (prevents constant animation)
+- **Interactive features matching Python**:
+  - **Search bar**: Filters nodes by label substring (case-insensitive, shows top 20 matches)
+  - **Node inspector**: Click node to see details (type, community, source file, degree, neighbors)
+  - **Community legend**: Click legend items to toggle visibility of communities
+  - **Zoom and pan**: Built-in vis.js navigation (mouse wheel zoom, drag to pan)
+  - **Neighbor navigation**: Click neighbor in inspector to focus that node
+- **Dark theme**: Matches Python's dark background (#0f0f1a), sidebar (#1a1a2e), and muted colors for readability
+- **System.Text.Json serialization**: UnsafeRelaxedJsonEscaping for JavaScript embedding (no need to escape quotes/slashes)
+- **Performance considerations**:
+  - hideEdgesOnDrag: true (improves performance during pan/zoom)
+  - Label culling: Only show labels for high-degree nodes (reduces visual clutter and rendering load)
+  - Max nodes limit: Hard cap at 5000 nodes with exception if exceeded
+
+**Python Compatibility**:
+- Matches Python's `to_html()` function output from graphify/export.py (lines 296-400)
+- Uses same vis.js library, same CDN URL
+- Same 10-color community palette (COMMUNITY_COLORS)
+- Same layout algorithm (forceAtlas2Based)
+- Same dark theme styling
+- Same interactive features (search, legend, inspector, navigation)
+- Difference: Python includes hyperedge rendering (convex hull polygons); we skip this as hyperedges aren't supported yet
+
+**Integration**:
+- HtmlExporter implements IGraphExporter interface like JsonExporter
+- Format property returns "html"
+- Expects KnowledgeGraph with communities assigned (from ClusterEngine)
+- Output: Single .html file that opens in any modern browser
+- Optional CommunityLabels property for custom community names (e.g., "Database Layer", "UI Components")
+
+**Build Verification**: `dotnet build src/Graphify/Graphify.csproj` succeeds with no errors or warnings.
+
+**Committed**: feat(export): implement interactive HTML exporter with vis.js (commit 1aa38d4)
+
