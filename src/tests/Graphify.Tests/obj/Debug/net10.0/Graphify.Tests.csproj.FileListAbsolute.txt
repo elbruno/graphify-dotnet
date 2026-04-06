@@ -1,11 +1,5 @@
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\.msCoverageSourceRootsMapping_Graphify.Tests
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\CoverletSourceRootsMapping_Graphify.Tests
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.csproj.AssemblyReference.cache
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.GeneratedMSBuildEditorConfig.editorconfig
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.AssemblyInfoInputs.cache
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.AssemblyInfo.cs
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.csproj.CoreCompileInputs.cache
-C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.sourcelink.json
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\testhost.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\testhost.exe
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\xunit.runner.visualstudio.testadapter.dll
@@ -104,6 +98,12 @@ C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\zh-Hant\Micros
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\zh-Hant\Microsoft.VisualStudio.TestPlatform.Common.resources.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Graphify.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Graphify.pdb
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.csproj.AssemblyReference.cache
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.GeneratedMSBuildEditorConfig.editorconfig
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.AssemblyInfoInputs.cache
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.AssemblyInfo.cs
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.csproj.CoreCompileInputs.cache
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.sourcelink.json
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.0127277F.Up2Date
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\refint\Graphify.Tests.dll
