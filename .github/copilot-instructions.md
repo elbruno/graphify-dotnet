@@ -211,10 +211,10 @@ Follow this exact order:
 10. **License** section
 11. **Author section** with Bruno's links:
     - Blog: https://elbruno.com
-    - YouTube: https://youtube.com/@inthelabs
-    - LinkedIn: https://linkedin.com/in/inthelabs
-    - Twitter: https://twitter.com/inthelabs
-    - Podcast: https://inthelabs.dev
+    - YouTube: https://youtube.com/elbruno
+    - LinkedIn: https://linkedin.com/in/elbruno
+    - Twitter: https://twitter.com/elbruno
+    - Podcast: https://notienenombre.com
 12. **Acknowledgments** section (credit to safishamsi/graphify)
 
 ### README Rules
