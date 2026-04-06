@@ -1,8 +1,9 @@
 name: Squad Release
 
+# NOTE: Disabled for this .NET project — no package.json or npm release flow.
+# Use build.yml for CI instead.
 on:
-  push:
-    branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: write

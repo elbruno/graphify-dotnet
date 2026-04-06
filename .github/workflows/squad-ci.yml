@@ -1,11 +1,9 @@
 name: Squad CI
 
+# NOTE: Disabled for this .NET project — no Node.js tests.
+# Use build.yml for CI instead.
 on:
-  pull_request:
-    branches: [dev, preview, main, insider]
-    types: [opened, synchronize, reopened]
-  push:
-    branches: [dev, insider]
+  workflow_dispatch:
 
 permissions:
   contents: read

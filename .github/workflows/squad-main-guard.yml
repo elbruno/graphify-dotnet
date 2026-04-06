@@ -4,8 +4,10 @@ on:
   pull_request:
     branches: [main, preview, insider]
     types: [opened, synchronize, reopened]
-  push:
-    branches: [main, preview, insider]
+  # NOTE: Push trigger disabled for this project.
+  # This repo commits .squad/ directly to main by design (no dev branch workflow).
+  # push:
+  #   branches: [main, preview, insider]
 
 permissions:
   contents: read
