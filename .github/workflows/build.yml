@@ -26,4 +26,5 @@ jobs:
         run: dotnet build graphify-dotnet.slnx --no-restore --configuration Release
       
       - name: Run tests
-        run: dotnet test graphify-dotnet.slnx --no-build --configuration Release --verbosity normal
+        run: dotnet test graphify-dotnet.slnx --no-build --configuration Release --verbosity normal --blame-hang-timeout 30s
+        timeout-minutes: 5
