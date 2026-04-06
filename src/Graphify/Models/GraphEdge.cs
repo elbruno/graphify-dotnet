@@ -47,3 +47,4 @@ public sealed record GraphEdge : IEdge<GraphNode>
         Target.Id == other.Target.Id &&
         Relationship == other.Relationship;
 }
+
