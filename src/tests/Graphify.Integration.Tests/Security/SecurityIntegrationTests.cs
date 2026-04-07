@@ -179,9 +179,9 @@ public sealed class SecurityIntegrationTests : IDisposable
 
         // Assert — Neo4j export
         var cypher = await File.ReadAllTextAsync(neo4jPath);
-        // After fix: the single quote in the label should be escaped to prevent injection
-        // The raw unescaped `'; DROP` pattern should not appear (single quote must be escaped)
-        Assert.DoesNotContain(@"'; DROP", cypher);
+        // After fix: the single quote in the label should be escaped with a backslash
+        // Verify the escaped form (\') is present instead of a raw unescaped single quote
+        Assert.Contains(@"Label\'", cypher);
         _output.WriteLine("Neo4j: Cypher injection neutralized ✓");
 
         // Assert — JSON export should be safely encoded

@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -36,6 +37,21 @@ public sealed class SemanticCache : ICacheProvider
         if (!Directory.Exists(_cacheDirectory))
         {
             Directory.CreateDirectory(_cacheDirectory);
+
+            // Set restrictive permissions on Unix (700 = owner only)
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux) ||
+                RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                try
+                {
+                    File.SetUnixFileMode(_cacheDirectory,
+                        UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.UserExecute);
+                }
+                catch (Exception)
+                {
+                    // Best-effort — may fail on some file systems
+                }
+            }
         }
     }
 

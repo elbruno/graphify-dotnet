@@ -80,7 +80,8 @@ public class ConfigPersistenceTests : IDisposable
         Assert.NotNull(loaded);
         Assert.Equal("azureopenai", loaded.Provider);
         Assert.Equal("https://myinstance.openai.azure.com/", loaded.AzureOpenAI.Endpoint);
-        Assert.Equal("sk-test-key-12345", loaded.AzureOpenAI.ApiKey);
+        // API key is no longer stored in the JSON file (FINDING-001 security fix)
+        Assert.Null(loaded.AzureOpenAI.ApiKey);
         Assert.Equal("gpt-4o-deploy", loaded.AzureOpenAI.DeploymentName);
         Assert.Equal("gpt-4o", loaded.AzureOpenAI.ModelId);
     }

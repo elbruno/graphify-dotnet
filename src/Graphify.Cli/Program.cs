@@ -113,7 +113,10 @@ static async Task<(IChatClient? chatClient, bool verbose)> ResolveProviderAsync(
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"\u26a0 AI provider error: {ex.Message}");
+        if (verbose)
+            Console.WriteLine($"\u26a0 AI provider error: {ex.Message}");
+        else
+            Console.WriteLine("\u26a0 AI provider initialization failed. Use --verbose for details.");
         Console.WriteLine("  Continuing with AST-only extraction.");
     }
 

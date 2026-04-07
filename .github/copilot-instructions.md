@@ -2,7 +2,7 @@
 
 These instructions define the conventions for the graphify-dotnet project. Apply them when creating, modifying, or reviewing any project in this repo.
 
-> **This is NOT a NuGet package.** graphify-dotnet is a .NET 10 console/library application. There is no NuGet publishing, no pack workflows, no multi-target frameworks.
+> **graphify-dotnet** is a .NET 10 console application published to NuGet as a [dotnet tool](https://www.nuget.org/packages/graphify-dotnet). The CLI is packaged via `PackAsTool` in `Graphify.Cli.csproj` and published through the `publish.yml` workflow.
 
 ---
 
@@ -71,7 +71,7 @@ graphify-dotnet/
 - Project naming: `Graphify`, `Graphify.Cli`, `Graphify.Sdk`, `Graphify.Mcp`
 - Enable deterministic CI builds: `<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>`
 - Include `<InternalsVisibleTo>` for the corresponding test project where needed
-- NO NuGet packaging properties (`<IncludeSymbols>`, `<PackageIcon>`, `<PackAsTool>`, etc.)
+- `Graphify.Cli` includes `<PackAsTool>true</PackAsTool>` for NuGet dotnet-tool publishing
 
 ### Test Projects
 - Target `net10.0`
@@ -84,7 +84,7 @@ graphify-dotnet/
 
 ## Directory.Build.props
 
-Place at repo root. Shared by all projects. **No NuGet package properties** — this is not a published package:
+Place at repo root. Shared by all projects. NuGet packaging properties for the CLI tool are in `Graphify.Cli.csproj`:
 
 ```xml
 <Project>
@@ -162,7 +162,7 @@ Thumbs.db
 - **Runner:** `ubuntu-latest`
 - **SDK:** `dotnet-version: 10.0.x`
 - **Commands use solution-level operations** (not per-project)
-- **No publish workflow** — this is not a NuGet package
+- **publish.yml** handles NuGet publishing on release events
 
 ```yaml
 name: CI Build
@@ -218,9 +218,8 @@ Follow this exact order:
 12. **Acknowledgments** section (credit to safishamsi/graphify)
 
 ### README Rules
-- Installation is `git clone` + `dotnet build` — do NOT use `dotnet add package`
+- Installation can be `dotnet tool install -g graphify-dotnet` or `git clone` + `dotnet build`
 - Badge URLs use shields.io
-- No NuGet version or download badges
 
 ---
 

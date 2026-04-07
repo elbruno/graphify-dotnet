@@ -19,4 +19,13 @@
     <!-- CI Build -->
     <ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>
   </PropertyGroup>
+
+  <!--
+    Version pinning strategy (FINDING-014):
+    - Microsoft.Extensions.* packages use major-version floating (10.*) to track .NET 10 previews.
+    - Pre-1.0 packages (Spectre.Console, ModelContextProtocol, TreeSitter.Bindings) float within
+      their major version; monitor for CVEs and breaking changes.
+    - Stable packages (QuikGraph, System.CommandLine) use major-version floating (2.*).
+    - Pin to exact versions once stable releases are available and for reproducible CI builds.
+  -->
 </Project>
