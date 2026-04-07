@@ -44,6 +44,20 @@ public static class ConfigWizard
                 break;
         }
 
+        // Export formats
+        AnsiConsole.WriteLine();
+        AnsiConsole.Write(new Rule("[bold cyan]Export Settings[/]").RuleStyle("cyan"));
+        AnsiConsole.WriteLine();
+
+        var formatPrompt = new MultiSelectionPrompt<string>()
+            .Title("[green]Export formats:[/]")
+            .PageSize(10)
+            .AddChoices(["json", "html", "svg", "neo4j", "obsidian", "wiki", "report"]);
+        foreach (var f in ParseSelectedFormats(config.ExportFormats))
+            formatPrompt.Select(f);
+        var selectedFormats = AnsiConsole.Prompt(formatPrompt);
+        config.ExportFormats = string.Join(",", selectedFormats);
+
         AnsiConsole.WriteLine();
         ShowSummary(config);
 
@@ -136,6 +150,9 @@ public static class ConfigWizard
                 table.AddRow("Auth", "GitHub Copilot CLI");
                 break;
         }
+
+        if (config.ExportFormats != null)
+            table.AddRow("Export Formats", config.ExportFormats);
 
         AnsiConsole.Write(table);
     }
