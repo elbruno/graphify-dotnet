@@ -38,8 +38,9 @@ public static class ConfigurationFactory
             {
                 if (cliOptions.Provider?.Equals("ollama", StringComparison.OrdinalIgnoreCase) == true)
                     overrides["Graphify:Ollama:Endpoint"] = cliOptions.Endpoint;
-                else
+                else if (cliOptions.Provider?.Equals("copilotsdk", StringComparison.OrdinalIgnoreCase) != true)
                     overrides["Graphify:AzureOpenAI:Endpoint"] = cliOptions.Endpoint;
+                // CopilotSdk does not use endpoints — silently ignore
             }
 
             if (cliOptions.ApiKey != null)
@@ -49,6 +50,8 @@ public static class ConfigurationFactory
             {
                 if (cliOptions.Provider?.Equals("ollama", StringComparison.OrdinalIgnoreCase) == true)
                     overrides["Graphify:Ollama:ModelId"] = cliOptions.Model;
+                else if (cliOptions.Provider?.Equals("copilotsdk", StringComparison.OrdinalIgnoreCase) == true)
+                    overrides["Graphify:CopilotSdk:ModelId"] = cliOptions.Model;
                 else
                     overrides["Graphify:AzureOpenAI:ModelId"] = cliOptions.Model;
             }

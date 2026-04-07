@@ -675,4 +675,24 @@
 **Rules followed**: README under 120 lines, no duplicate content with docs/, all existing doc links preserved, `graphify config` is step 2 in Quick Start.
 
 **Validation**: `dotnet build graphify-dotnet.slnx` — 0 errors, 0 warnings.
+### 2026-04-07: Interactive `config set` Command + ConfigurationFactory Bug Fixes
+
+**Context**: Added interactive `config set` wizard and fixed CopilotSdk routing bugs in ConfigurationFactory.
+
+**What I Built**:
+- **`config set` command** in Program.cs: Interactive numbered menu (1=Ollama, 2=Azure OpenAI, 3=Copilot SDK). Prompts for provider-specific settings with defaults. Persists via `dotnet user-secrets set --id <userSecretsId>`. Shows resolved config after save.
+- **ConfigurationFactory `--model` fix**: Three-way provider routing: ollama → `Graphify:Ollama:ModelId`, copilotsdk → `Graphify:CopilotSdk:ModelId`, default → `Graphify:AzureOpenAI:ModelId`.
+- **ConfigurationFactory `--endpoint` fix**: CopilotSdk doesn't use endpoints — silently ignores `--endpoint` when provider is copilotsdk.
+
+**Key Files**:
+- `src/Graphify.Cli/Program.cs` — config set subcommand (lines ~233-350)
+- `src/Graphify.Cli/Configuration/ConfigurationFactory.cs` — fixed model/endpoint routing (lines 34-53)
+
+**Technical Decisions**:
+- Used `System.Diagnostics.Process` to call `dotnet user-secrets set --id` for persistence (simpler than referencing UserSecrets API directly, and the UserSecretsId is hardcoded as const)
+- Console.ReadLine() for interactive prompts — System.CommandLine has no built-in interactive menu support
+- Provider-specific required field validation for Azure OpenAI (endpoint, API key, deployment, model all required)
+- Ollama and Copilot SDK have sensible defaults (no required fields beyond menu choice)
+
+**Build/Test**: 509 tests pass (471 unit + 38 integration), zero warnings.
 
