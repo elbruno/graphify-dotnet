@@ -6,7 +6,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>graphify</ToolCommandName>
     <PackageId>graphify-dotnet</PackageId>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Description>AI-powered knowledge graph builder for codebases</Description>
     <Authors>Bruno Capuano</Authors>
     <PackageProjectUrl>https://github.com/elbruno/graphify-dotnet</PackageProjectUrl>
