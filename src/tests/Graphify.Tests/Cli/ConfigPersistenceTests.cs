@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Graphify.Cli.Configuration;
 using Xunit;
@@ -34,6 +35,9 @@ public class ConfigPersistenceTests : IDisposable
         // Remove test artifact
         try { if (File.Exists(_configPath)) File.Delete(_configPath); } catch { }
 
+        // Clean up any user-secrets set during tests to avoid polluting other tests
+        CleanupUserSecrets();
+
         // Restore original if it existed
         if (_backupPath != null && File.Exists(_backupPath))
         {
@@ -44,6 +48,25 @@ public class ConfigPersistenceTests : IDisposable
             }
             catch { }
         }
+    }
+
+    private static void CleanupUserSecrets()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "user-secrets clear --id \"graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(5000);
+        }
+        catch { }
     }
 
     // ── Path ──────────────────────────────────────────────────────────

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Text.Json;
 using Graphify.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
@@ -15,6 +16,9 @@ public class ConfigurationFactoryTests : IDisposable
     {
         _localConfigPath = Path.Combine(AppContext.BaseDirectory, "appsettings.local.json");
 
+        // Clear any user-secrets that might have been set by other tests
+        CleanupUserSecrets();
+
         if (File.Exists(_localConfigPath))
         {
             _backupPath = _localConfigPath + ".test-backup";
@@ -27,6 +31,9 @@ public class ConfigurationFactoryTests : IDisposable
     {
         try { if (File.Exists(_localConfigPath)) File.Delete(_localConfigPath); } catch { }
 
+        // Clean up any user-secrets to avoid polluting other tests
+        CleanupUserSecrets();
+
         if (_backupPath != null && File.Exists(_backupPath))
         {
             try
@@ -36,6 +43,25 @@ public class ConfigurationFactoryTests : IDisposable
             }
             catch { }
         }
+    }
+
+    private static void CleanupUserSecrets()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "user-secrets clear --id \"graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var proc = Process.Start(psi);
+            proc?.WaitForExit(5000);
+        }
+        catch { }
     }
     [Fact]
     [Trait("Category", "Cli")]
