@@ -327,10 +327,10 @@ public sealed class SecurityHardeningTests
 
         try
         {
-            Directory.CreateDirectory(cacheDir);
+            // Act — use the real SemanticCache to create the directory (tests actual permission logic)
+            _ = new Graphify.Cache.SemanticCache(tempRoot);
 
-            // Act & Assert — verify permissions are 700 (owner-only) on Unix
-            // After fix, SemanticCache should set directory permissions to 700
+            // Assert — verify permissions are 700 (owner-only) on Unix
             var dirInfo = new DirectoryInfo(cacheDir);
             var mode = dirInfo.UnixFileMode;
             
