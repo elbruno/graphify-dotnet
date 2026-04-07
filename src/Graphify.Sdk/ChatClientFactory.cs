@@ -8,7 +8,8 @@ namespace Graphify.Sdk;
 public enum AiProvider
 {
     AzureOpenAI,
-    Ollama
+    Ollama,
+    CopilotSdk
 }
 
 /// <summary>
@@ -34,6 +35,7 @@ public static class ChatClientFactory
 {
     /// <summary>
     /// Creates an IChatClient configured for the specified provider.
+    /// For synchronous providers (AzureOpenAI, Ollama). Use CreateAsync for CopilotSdk.
     /// </summary>
     public static IChatClient Create(AiProviderOptions options)
     {
@@ -53,7 +55,29 @@ public static class ChatClientFactory
                     Endpoint: options.Endpoint ?? "http://localhost:11434",
                     ModelId: options.ModelId ?? "llama3.2")),
 
+            AiProvider.CopilotSdk => throw new InvalidOperationException(
+                "CopilotSdk requires async initialization. Use ChatClientFactory.CreateAsync() instead."),
+
             _ => throw new ArgumentException($"Unknown AI provider: {options.Provider}", nameof(options))
         };
+    }
+
+    /// <summary>
+    /// Creates an IChatClient configured for the specified provider (async version).
+    /// Required for CopilotSdk; also works for other providers.
+    /// </summary>
+    public static async Task<IChatClient> CreateAsync(AiProviderOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        if (options.Provider == AiProvider.CopilotSdk)
+        {
+            return await CopilotSdkClientFactory.CreateAsync(
+                new CopilotSdkOptions(
+                    ModelId: options.ModelId ?? "gpt-4.1"));
+        }
+
+        // For non-async providers, delegate to sync factory
+        return Create(options);
     }
 }

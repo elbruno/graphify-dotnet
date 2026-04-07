@@ -3,6 +3,7 @@ namespace Graphify.Sdk;
 /// <summary>
 /// Configuration options for CopilotExtractor.
 /// </summary>
+[Obsolete("Use CopilotSdkOptions with CopilotSdkClientFactory instead. SemanticExtractor in the core library is the canonical AI extraction path.")]
 public class CopilotExtractorOptions
 {
     /// <summary>
