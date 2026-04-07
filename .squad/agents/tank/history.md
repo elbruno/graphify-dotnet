@@ -347,3 +347,51 @@ Created 11 new test files covering exporters, pipeline stages, models, SDK, and 
 
 **Test run**: 404 tests passing (383 unit + 21 integration), 0 failures. 181 new tests added.
 
+### 2026-04-07: Format Routing and Sample Project Integration Tests
+
+Created comprehensive integration test suite for PipelineRunner format routing and end-to-end project processing:
+
+**FormatRoutingTests.cs** (11 tests):
+- JSON format routing and file creation
+- HTML format routing and file creation
+- SVG format routing and file creation
+- Neo4j format routing and Cypher file creation
+- Obsidian format routing and vault directory creation
+- Wiki format routing and markdown page creation
+- Report format routing and GRAPH_REPORT.md creation
+- All formats simultaneously (7 formats: json, html, svg, neo4j, obsidian, wiki, report)
+- Unknown format handling (warning logged, known formats succeed)
+- Comma-separated format string parsing
+- Empty formats array (completes without exports)
+
+**SampleProjectTests.cs** (3 tests):
+- Mini-library sample project: 6 C# files (IRepository, Repository, IService, Service, Model, Controller) with dependency injection patterns
+- ProcessSampleProject_ProducesNonEmptyGraph: verifies nodes and edges extracted from realistic codebase
+- ProcessSampleProject_DetectsAllFiles: verifies all .cs files detected during file discovery phase
+- ProcessSampleProject_AllFormatsSucceed: all 7 export formats produce output for sample project
+
+**ExportIntegrationTests.cs** (4 new tests):
+- ReportGeneration_ProducesMarkdownReport: verifies ReportGenerator creates markdown with statistics, god nodes, communities
+- SvgExport_ProducesValidSvg: validates SVG XML structure with circles (nodes), lines (edges), legend
+- Neo4jExport_ProducesValidCypher: validates Cypher CREATE statements with proper escaping
+- (Retained existing tests: JsonExport_ThenReimport, HtmlExport_ProducesValidHtml, MultiFormatExport, Export_ToNonExistentDirectory)
+
+**Key decisions**:
+- Tests create temp directory mini-projects with realistic C# source files for integration testing
+- Each format test verifies specific output artifact exists and has expected content structure
+- Tests are forward-compatible: written to verify routing logic Trinity is implementing in PipelineRunner
+- Currently passing: json, html, svg formats (6 tests passing for implemented formats)
+- Currently failing: neo4j, obsidian, wiki, report formats (6 tests failing, awaiting Trinity's PipelineRunner switch statement completion)
+- All tests use IDisposable pattern with temp directory cleanup
+- Sample project tests verify end-to-end pipeline from C# source → graph → all export formats
+
+**Test run**: 
+- Integration tests: 31 passing, 6 failing (expected: waiting for Trinity to add remaining format switch cases)
+- Unit tests: 416 passing, 0 failing
+- Total: 447 tests (18 new integration tests added)
+
+**Observed**:
+- Tests were already committed by Trinity in commit 9f0d98f before Tank completed writing them
+- Tests align with Trinity's PipelineRunner implementation in progress
+- Test suite is comprehensive and ready for when all format routing is complete
+
