@@ -38,7 +38,7 @@ static void AddPipelineOptions(Command cmd,
     };
     providerOpt = new Option<string?>("--provider", "-p")
     {
-        Description = "AI provider: azureopenai, ollama"
+        Description = "AI provider: azureopenai, ollama, copilotsdk"
     };
     endpointOpt = new Option<string?>("--endpoint")
     {
@@ -67,7 +67,7 @@ static void AddPipelineOptions(Command cmd,
     cmd.Options.Add(deploymentOpt);
 }
 
-static (IChatClient? chatClient, bool verbose) ResolveProvider(
+static async Task<(IChatClient? chatClient, bool verbose)> ResolveProviderAsync(
     System.CommandLine.ParseResult parseResult,
     Option<bool> verboseOpt,
     Option<string?> providerOpt,
@@ -92,7 +92,7 @@ static (IChatClient? chatClient, bool verbose) ResolveProvider(
     IChatClient? chatClient = null;
     try
     {
-        chatClient = ChatClientResolver.Resolve(graphifyConfig);
+        chatClient = await ChatClientResolver.ResolveAsync(graphifyConfig);
         if (chatClient != null)
             Console.WriteLine($"\u2713 AI provider: {graphifyConfig.Provider}");
     }
@@ -122,7 +122,7 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
     var format = parseResult.GetValue(runFormatOpt)!;
     var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    var (chatClient, verbose) = ResolveProvider(parseResult,
+    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
         runVerboseOpt, runProviderOpt, runEndpointOpt, runApiKeyOpt, runModelOpt, runDeploymentOpt);
 
     var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient);
@@ -149,7 +149,7 @@ watchCommand.SetAction(async (parseResult, cancellationToken) =>
     var format = parseResult.GetValue(watchFormatOpt)!;
     var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    var (chatClient, verbose) = ResolveProvider(parseResult,
+    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
         watchVerboseOpt, watchProviderOpt, watchEndpointOpt, watchApiKeyOpt, watchModelOpt, watchDeploymentOpt);
 
     Console.WriteLine("Running initial pipeline...");
@@ -216,6 +216,11 @@ configShowCommand.SetAction(parseResult =>
     Console.WriteLine("  Ollama:");
     Console.WriteLine($"    Endpoint:     {config.Ollama.Endpoint}");
     Console.WriteLine($"    Model:        {config.Ollama.ModelId}");
+    Console.WriteLine();
+
+    Console.WriteLine("  Copilot SDK:");
+    Console.WriteLine($"    Model:        {config.CopilotSdk.ModelId}");
+    Console.WriteLine("    Auth:         GitHub Copilot CLI (login required)");
     Console.WriteLine();
 
     Console.WriteLine("Configuration sources (highest priority first):");

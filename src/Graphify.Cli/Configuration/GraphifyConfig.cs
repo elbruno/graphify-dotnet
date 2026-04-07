@@ -8,6 +8,7 @@ public class GraphifyConfig
     public string? Provider { get; set; }
     public AzureOpenAIConfig AzureOpenAI { get; set; } = new();
     public OllamaConfig Ollama { get; set; } = new();
+    public CopilotSdkConfig CopilotSdk { get; set; } = new();
 }
 
 /// <summary>
@@ -28,4 +29,13 @@ public class OllamaConfig
 {
     public string Endpoint { get; set; } = "http://localhost:11434";
     public string ModelId { get; set; } = "llama3.2";
+}
+
+/// <summary>
+/// GitHub Copilot SDK provider configuration.
+/// Authentication is handled by the GitHub Copilot CLI (user must be logged in).
+/// </summary>
+public class CopilotSdkConfig
+{
+    public string ModelId { get; set; } = "gpt-4.1";
 }

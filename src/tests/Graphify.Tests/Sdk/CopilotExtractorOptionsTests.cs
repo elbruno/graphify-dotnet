@@ -1,3 +1,4 @@
+#pragma warning disable CS0612, CS0618 // Suppress obsolete warnings — testing deprecated class
 using Graphify.Sdk;
 using Xunit;
 

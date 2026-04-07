@@ -18,14 +18,15 @@ public class ChatClientFactoryTests
     {
         Assert.True(Enum.IsDefined(typeof(AiProvider), AiProvider.AzureOpenAI));
         Assert.True(Enum.IsDefined(typeof(AiProvider), AiProvider.Ollama));
+        Assert.True(Enum.IsDefined(typeof(AiProvider), AiProvider.CopilotSdk));
     }
 
     [Fact]
     [Trait("Category", "Sdk")]
-    public void AiProvider_HasExactlyTwoValues()
+    public void AiProvider_HasExactlyThreeValues()
     {
         var values = Enum.GetValues<AiProvider>();
-        Assert.Equal(2, values.Length);
+        Assert.Equal(3, values.Length);
     }
 
     [Fact]
@@ -150,5 +151,29 @@ public class ChatClientFactoryTests
 
         Assert.Throws<ArgumentException>(() =>
             ChatClientFactory.Create(options));
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_CopilotSdk_Sync_ThrowsInvalidOperationException()
+    {
+        var options = new AiProviderOptions(Provider: AiProvider.CopilotSdk);
+
+        Assert.Throws<InvalidOperationException>(() =>
+            ChatClientFactory.Create(options));
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void AiProviderOptions_CopilotSdk_ConstructionWorks()
+    {
+        var options = new AiProviderOptions(
+            Provider: AiProvider.CopilotSdk,
+            ModelId: "gpt-4.1");
+
+        Assert.Equal(AiProvider.CopilotSdk, options.Provider);
+        Assert.Equal("gpt-4.1", options.ModelId);
+        Assert.Null(options.Endpoint);
+        Assert.Null(options.ApiKey);
     }
 }

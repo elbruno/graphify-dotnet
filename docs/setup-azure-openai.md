@@ -355,6 +355,7 @@ var deploymentName = "gpt-4o";  // Must match Azure Portal exactly
 ## See Also
 
 - [Using graphify-dotnet with Ollama (Local Models)](./setup-ollama.md)
+- [Using graphify-dotnet with GitHub Copilot SDK](./setup-copilot-sdk.md)
 - [Azure OpenAI Documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 - [Azure OpenAI Models](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models)
 - [API Reference: AzureOpenAIClientFactory](../src/Graphify.Sdk/AzureOpenAIClientFactory.cs)

@@ -10,6 +10,7 @@ namespace Graphify.Sdk;
 /// Extracts high-level semantic concepts, design patterns, and relationships from files
 /// using AI providers via Microsoft.Extensions.AI IChatClient.
 /// </summary>
+[Obsolete("Use SemanticExtractor from Graphify.Pipeline with any IChatClient (including CopilotChatClient). This class is a duplicate and will be removed in a future version.")]
 public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
 {
     private readonly IChatClient? _chatClient;

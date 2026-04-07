@@ -15,7 +15,7 @@ public static class ChatClientResolver
 
         if (!Enum.TryParse<AiProvider>(config.Provider, ignoreCase: true, out var provider))
             throw new InvalidOperationException(
-                $"Unknown AI provider: '{config.Provider}'. Supported: azureopenai, ollama");
+                $"Unknown AI provider: '{config.Provider}'. Supported: azureopenai, ollama, copilotsdk");
 
         var options = provider switch
         {
@@ -31,9 +31,55 @@ public static class ChatClientResolver
                 Endpoint: config.Ollama.Endpoint,
                 ModelId: config.Ollama.ModelId),
 
+            AiProvider.CopilotSdk => new AiProviderOptions(
+                Provider: AiProvider.CopilotSdk,
+                ModelId: config.CopilotSdk.ModelId),
+
             _ => throw new InvalidOperationException($"Unsupported provider: {provider}")
         };
 
+        // CopilotSdk requires async initialization
+        if (provider == AiProvider.CopilotSdk)
+        {
+            return ChatClientFactory.CreateAsync(options).GetAwaiter().GetResult();
+        }
+
         return ChatClientFactory.Create(options);
+    }
+
+    /// <summary>
+    /// Async version of Resolve. Preferred for CopilotSdk provider.
+    /// </summary>
+    public static async Task<IChatClient?> ResolveAsync(GraphifyConfig config)
+    {
+        if (string.IsNullOrEmpty(config.Provider))
+            return null;
+
+        if (!Enum.TryParse<AiProvider>(config.Provider, ignoreCase: true, out var provider))
+            throw new InvalidOperationException(
+                $"Unknown AI provider: '{config.Provider}'. Supported: azureopenai, ollama, copilotsdk");
+
+        var options = provider switch
+        {
+            AiProvider.AzureOpenAI => new AiProviderOptions(
+                Provider: AiProvider.AzureOpenAI,
+                Endpoint: config.AzureOpenAI.Endpoint,
+                ApiKey: config.AzureOpenAI.ApiKey,
+                ModelId: config.AzureOpenAI.ModelId,
+                DeploymentName: config.AzureOpenAI.DeploymentName),
+
+            AiProvider.Ollama => new AiProviderOptions(
+                Provider: AiProvider.Ollama,
+                Endpoint: config.Ollama.Endpoint,
+                ModelId: config.Ollama.ModelId),
+
+            AiProvider.CopilotSdk => new AiProviderOptions(
+                Provider: AiProvider.CopilotSdk,
+                ModelId: config.CopilotSdk.ModelId),
+
+            _ => throw new InvalidOperationException($"Unsupported provider: {provider}")
+        };
+
+        return await ChatClientFactory.CreateAsync(options);
     }
 }
