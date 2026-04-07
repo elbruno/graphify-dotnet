@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.Diagnostics;
 using Graphify.Cli.Configuration;
 using Microsoft.Extensions.Configuration;
 using Xunit;
@@ -13,7 +14,8 @@ namespace Graphify.Tests.Cli;
 ///   2. The underlying provider routing logic via ConfigurationFactory
 ///   3. CopilotSdk only requires ModelId (no endpoint, no API key)
 /// </summary>
-public class ConfigSetCommandTests
+[Collection("ConfigFile")]
+public class ConfigSetCommandTests : IDisposable
 {
     // ──────────────────────────────────────────────
     // Command tree: "config set" is registered
@@ -406,5 +408,32 @@ public class ConfigSetCommandTests
         Assert.Equal("claude-sonnet", graphifyConfig.CopilotSdk.ModelId);
         // Verify no bleed into other providers
         Assert.Null(graphifyConfig.AzureOpenAI.ModelId);
+    }
+
+    public void Dispose()
+    {
+        CleanupUserSecrets();
+    }
+
+    private static void CleanupUserSecrets()
+    {
+        try
+        {
+            var psi = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = "user-secrets clear --id \"graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+            using var process = Process.Start(psi);
+            process?.WaitForExit(5000);
+        }
+        catch
+        {
+            // Best-effort cleanup
+        }
     }
 }
