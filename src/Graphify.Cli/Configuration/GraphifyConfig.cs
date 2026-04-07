@@ -6,6 +6,9 @@ namespace Graphify.Cli.Configuration;
 public class GraphifyConfig
 {
     public string? Provider { get; set; }
+    public string? WorkingFolder { get; set; }
+    public string? OutputFolder { get; set; }
+    public string? ExportFormats { get; set; }
     public AzureOpenAIConfig AzureOpenAI { get; set; } = new();
     public OllamaConfig Ollama { get; set; } = new();
     public CopilotSdkConfig CopilotSdk { get; set; } = new();

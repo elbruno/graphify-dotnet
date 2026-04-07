@@ -642,3 +642,23 @@
 - `src/Graphify.Cli/Configuration/ConfigurationFactory.cs` — Layered config (5 layers now)
 - `src/Graphify.Cli/Program.cs` — CLI entry point with Spectre.Console integration
 
+### 2026-04-08: Folder Config Menu Option (Feature: Set folder to analyze)
+
+**Context**: Bruno wanted a 3rd option in the interactive config menu: "📂 Set folder to analyze". This lets users configure a default working folder, output directory, and export format selection that persists across `run` invocations.
+
+**What I Built**:
+- **GraphifyConfig.cs**: Added `WorkingFolder`, `OutputFolder`, `ExportFormats` properties (all nullable strings, top-level alongside Provider)
+- **ConfigWizard.RunFolderWizard()**: New static method mirroring `Run()` style. Prompts for folder path (with `Directory.Exists` warning), output directory, and multi-select export formats via `MultiSelectionPrompt<string>`. Shows summary panel.
+- **ConfigPersistence.BuildSerializableConfig()**: Always persists WorkingFolder/OutputFolder/ExportFormats when set (not gated by provider switch)
+- **Program.cs interactive menu**: 3 choices now — view, AI provider, folder. Dispatches to `RunFolderWizard` for 📂.
+- **Program.cs `config folder` subcommand**: New subcommand alongside `config show` and `config set`.
+- **Program.cs `run` command**: Checks saved config for defaults when CLI args are at default values (path=`.`, output=`graphify-out`, format=`json,html,report`).
+- **Program.cs `ShowStyledConfig`**: Added "Project Settings" table showing WorkingFolder, OutputFolder, ExportFormats.
+
+**Technical Decisions**:
+- `MultiSelectionPrompt.Select()` takes individual items, not arrays — used foreach loop to pre-select defaults
+- Folder validation uses warning (not error) when path doesn't exist — user might configure before creating
+- Saved config only overrides run defaults, not explicit CLI flags (checked against default values)
+
+**Validation**: `dotnet build graphify-dotnet.slnx` — 0 errors, 527/527 tests pass.
+

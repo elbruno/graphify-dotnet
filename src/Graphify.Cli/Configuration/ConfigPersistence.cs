@@ -73,6 +73,13 @@ public static class ConfigPersistence
     {
         var result = new Dictionary<string, object?> { ["Provider"] = config.Provider };
 
+        if (config.WorkingFolder != null)
+            result["WorkingFolder"] = config.WorkingFolder;
+        if (config.OutputFolder != null)
+            result["OutputFolder"] = config.OutputFolder;
+        if (config.ExportFormats != null)
+            result["ExportFormats"] = config.ExportFormats;
+
         switch (config.Provider?.ToLowerInvariant())
         {
             case "azureopenai":

@@ -135,6 +135,21 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
     var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     var useConfigWizard = parseResult.GetValue(runConfigOpt);
 
+    // Apply saved config defaults when CLI arguments are at their default values
+    var savedConfig = ConfigPersistence.Load();
+    if (savedConfig != null)
+    {
+        if (path == "." && savedConfig.WorkingFolder != null)
+            path = savedConfig.WorkingFolder;
+        if (output == "graphify-out" && savedConfig.OutputFolder != null)
+            output = savedConfig.OutputFolder;
+        if (format == "json,html,report" && savedConfig.ExportFormats != null)
+        {
+            format = savedConfig.ExportFormats;
+            formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        }
+    }
+
     if (useConfigWizard)
     {
         var existingConfig = ConfigPersistence.Load();
@@ -243,12 +258,19 @@ configCommand.SetAction(parseResult =>
             .Title("[bold]What would you like to do?[/]")
             .AddChoices([
                 "📋 View current configuration",
-                "🔧 Set up AI provider"
+                "🔧 Set up AI provider",
+                "📂 Set folder to analyze"
             ]));
 
     if (action.StartsWith("📋"))
     {
         ShowStyledConfig();
+    }
+    else if (action.StartsWith("📂"))
+    {
+        var existingConfig = ConfigPersistence.Load();
+        var wizardConfig = ConfigWizard.RunFolderWizard(existingConfig);
+        ConfigPersistence.Save(wizardConfig);
     }
     else
     {
@@ -260,6 +282,18 @@ configCommand.SetAction(parseResult =>
 
 configCommand.Subcommands.Add(configShowCommand);
 configCommand.Subcommands.Add(configSetCommand);
+
+// config folder subcommand — launches folder wizard
+var configFolderCommand = new Command("folder", "Set the default project folder to analyze");
+
+configFolderCommand.SetAction(parseResult =>
+{
+    var existingConfig = ConfigPersistence.Load();
+    var wizardConfig = ConfigWizard.RunFolderWizard(existingConfig);
+    ConfigPersistence.Save(wizardConfig);
+});
+
+configCommand.Subcommands.Add(configFolderCommand);
 rootCommand.Subcommands.Add(configCommand);
 
 // ── invoke ───────────────────────────────────────────────────────────────
@@ -286,6 +320,16 @@ static void ShowStyledConfig()
         : "[grey](not set — AST-only mode)[/]";
     AnsiConsole.MarkupLine($"  [bold]Provider:[/]  {providerText}");
     AnsiConsole.WriteLine();
+
+    // Project settings section
+    var savedConfig = ConfigPersistence.Load();
+    var folderTable = new Table().Border(TableBorder.Simple).Title("[bold cyan]Project Settings[/]");
+    folderTable.AddColumn("[bold]Setting[/]");
+    folderTable.AddColumn("[bold]Value[/]");
+    folderTable.AddRow("Working Folder", FormatValue(savedConfig?.WorkingFolder));
+    folderTable.AddRow("Output Folder", FormatValue(savedConfig?.OutputFolder));
+    folderTable.AddRow("Export Formats", FormatValue(savedConfig?.ExportFormats));
+    AnsiConsole.Write(folderTable);
 
     // Azure OpenAI section
     var azureTable = new Table().Border(TableBorder.Simple).Title("[bold cyan]Azure OpenAI[/]");

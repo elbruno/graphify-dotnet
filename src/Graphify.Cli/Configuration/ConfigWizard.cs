@@ -140,6 +140,69 @@ public static class ConfigWizard
         AnsiConsole.Write(table);
     }
 
+    public static GraphifyConfig RunFolderWizard(GraphifyConfig? existing = null)
+    {
+        AnsiConsole.Write(new Rule("[bold blue]📂 Project Folder Settings[/]").RuleStyle("blue"));
+        AnsiConsole.WriteLine();
+
+        var config = existing ?? new GraphifyConfig();
+
+        var workingFolder = AnsiConsole.Prompt(
+            new TextPrompt<string>("[green]Project folder to analyze:[/]")
+                .DefaultValue(config.WorkingFolder ?? ".")
+                .Validate(v =>
+                {
+                    if (string.IsNullOrWhiteSpace(v))
+                        return ValidationResult.Error("Folder path is required");
+                    if (!Directory.Exists(v))
+                        AnsiConsole.MarkupLine($"[yellow]⚠ Folder '{v}' does not exist yet — will be used when created.[/]");
+                    return ValidationResult.Success();
+                }));
+        config.WorkingFolder = workingFolder;
+
+        var outputFolder = AnsiConsole.Prompt(
+            new TextPrompt<string>("[green]Output directory:[/]")
+                .DefaultValue(config.OutputFolder ?? "graphify-out"));
+        config.OutputFolder = outputFolder;
+
+        var prompt = new MultiSelectionPrompt<string>()
+            .Title("[green]Export formats:[/]")
+            .PageSize(10)
+            .AddChoices(["json", "html", "svg", "neo4j", "obsidian", "wiki", "report"]);
+        foreach (var f in ParseSelectedFormats(config.ExportFormats))
+            prompt.Select(f);
+        var formatChoices = AnsiConsole.Prompt(prompt);
+        config.ExportFormats = string.Join(",", formatChoices);
+
+        AnsiConsole.WriteLine();
+        ShowFolderSummary(config);
+
+        return config;
+    }
+
+    private static string[] ParseSelectedFormats(string? formats)
+    {
+        if (string.IsNullOrWhiteSpace(formats))
+            return ["json", "html", "report"];
+        return formats.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+    }
+
+    private static void ShowFolderSummary(GraphifyConfig config)
+    {
+        var table = new Table()
+            .Border(TableBorder.Rounded)
+            .Title("[bold green]✅ Folder Settings Summary[/]");
+
+        table.AddColumn("[bold]Setting[/]");
+        table.AddColumn("[bold]Value[/]");
+
+        table.AddRow("Working Folder", config.WorkingFolder ?? "(not set)");
+        table.AddRow("Output Folder", config.OutputFolder ?? "(not set)");
+        table.AddRow("Export Formats", config.ExportFormats ?? "(not set)");
+
+        AnsiConsole.Write(table);
+    }
+
     private static string MaskSecret(string? value)
     {
         if (string.IsNullOrEmpty(value)) return "(not set)";
