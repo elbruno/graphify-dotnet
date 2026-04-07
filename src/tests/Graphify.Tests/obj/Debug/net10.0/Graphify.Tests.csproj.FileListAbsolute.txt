@@ -112,3 +112,16 @@ C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\Graphify.Tests
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\obj\Debug\net10.0\ref\Graphify.Tests.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Graphify.Sdk.dll
 C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Graphify.Sdk.pdb
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Azure.AI.OpenAI.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Azure.Core.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Bcl.AsyncInterfaces.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.AI.OpenAI.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.Configuration.Abstractions.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.Diagnostics.Abstractions.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.FileProviders.Abstractions.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.Hosting.Abstractions.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\Microsoft.Extensions.Options.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\OllamaSharp.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\OpenAI.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\System.ClientModel.dll
+C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Debug\net10.0\System.Memory.Data.dll

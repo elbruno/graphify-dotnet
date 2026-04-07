@@ -195,3 +195,155 @@ Created test files for features being developed in parallel by Trinity and Morph
 
 **Test run**: 202 tests passing (18 new + 184 existing), 0 failures.
 
+### 2026-04-07: Phase 3 Comprehensive Unit Test Coverage
+
+Created 11 new test files covering exporters, pipeline stages, models, SDK, and ingest:
+
+**Export Tests (4 files, 44 tests)**:
+
+**Neo4jExporterTests.cs** (11 tests):
+- Valid Cypher CREATE statement generation
+- Node labels, properties, and metadata in output
+- Edge relationship types with weight/confidence
+- Empty graph produces valid header-only Cypher
+- Special character escaping (quotes, backslashes)
+- File output writes to disk
+- Community property inclusion
+- Index statement generation
+- Null graph / empty path validation
+- Empty node type sanitized to "Node"
+
+**ObsidianExporterTests.cs** (10 tests):
+- Creates .md file per node + _Index.md
+- Wiki-link syntax [[target]] between connected nodes
+- YAML frontmatter with id, type, metadata
+- Empty graph → only index file
+- Community assignment in frontmatter
+- Index contains node/edge statistics
+- Null graph validation
+- No-connection message for isolated nodes
+- Output directory auto-creation
+
+**SvgExporterTests.cs** (12 tests):
+- Valid SVG XML with proper XML declaration
+- viewBox="0 0 1600 1200" and width/height attributes
+- Nodes rendered as `<circle>` with class="node"
+- Edges rendered as `<line>` with class="edge"
+- Empty graph → "Empty Graph" text in valid SVG
+- Legend with stats (nodes/edges count)
+- Node titles include label text
+- Community colors mapped (#4285F4, #EA4335, etc.)
+- XML escaping for special characters (&lt;, &amp;)
+- CSS style definitions for .edge, .node, .label
+- Null graph validation
+
+**WikiExporterTests.cs** (11 tests):
+- Index.md creation with TOC structure
+- Internal [[wikilinks]] for navigation
+- Community articles with Key Concepts sections
+- God node articles for top-connected nodes
+- Empty graph → valid index with "0 nodes"
+- Audit Trail section in community articles
+- God Nodes section in index
+- Null graph / empty path validation
+
+**Pipeline Tests (4 files, 34 tests)**:
+
+**BenchmarkRunnerTests.cs** (11 tests):
+- Valid graph JSON → metrics with corpus tokens, node/edge counts
+- Missing file → error result
+- Token reduction ratio is positive
+- PrintBenchmark formats output with commas, reduction ratio
+- Error result prints error message
+- Null arguments throw ArgumentNullException
+- Invalid JSON → error result
+- Custom questions parameter accepted
+
+**ReportGeneratorTests.cs** (11 tests):
+- Full report generation with project name
+- Node count, edge count in summary
+- God Nodes section with hub labels
+- Community count and labels
+- Top-connected nodes listed
+- Empty graph → valid report
+- Surprising Connections section
+- Suggested Questions section
+- Null graph/analysis → ArgumentNullException
+- Knowledge Gaps section for isolated nodes
+
+**SemanticExtractorTests.cs** (9 tests):
+- Null IChatClient → empty result (graceful degradation)
+- Mock IChatClient returns parsed nodes/edges
+- Invalid JSON response → empty result (no crash)
+- Cancellation token respected
+- File size exceeds limit → empty result
+- Documentation category processed
+- Disabled category → empty result
+- JSON in markdown code block parsed correctly
+- Source file path preserved in result
+
+**ExtractionPromptsTests.cs** (14 tests):
+- CodeSemanticExtraction includes file content, name, maxNodes, design pattern keywords
+- DocumentationExtraction includes content and concept/relationship keywords
+- ImageVisionExtraction includes filename and maxNodes
+- PaperExtraction includes extracted text and contribution keywords
+- All 4 prompts are non-empty (Theory)
+- All 4 prompts request JSON output
+
+**Model Tests (1 file, 34 tests)**:
+
+**ModelTests.cs** (34 tests):
+- ExtractedNode: construction, metadata, record equality
+- ExtractedEdge: construction, default weight=1.0, custom weight
+- ExtractionResult: defaults (Ast method), semantic method
+- GraphNode: construction, equality by Id only, different Ids not equal, `with` expression
+- GraphEdge: construction, equality by source+target+relationship, different relationship not equal
+- DetectedFile: all 7 properties, record equality
+- AnalysisResult, GraphStatistics: all properties
+- GraphReport, Community: construction with cohesion score
+- Confidence enum: 3 values (Extracted, Inferred, Ambiguous)
+- FileType enum: 4 values (Code, Document, Paper, Image)
+- FileCategory enum: 3 values (Code, Documentation, Media)
+- ExtractionMethod enum: 3 values (Ast, Semantic, Hybrid)
+- SurprisingConnection, SuggestedQuestion, GodNode: construction
+
+**SDK Tests (2 files, 10 tests)**:
+
+**GitHubModelsClientFactoryTests.cs** (5 tests):
+- Null options → ArgumentNullException
+- Empty/whitespace/null ApiKey → ArgumentException
+- Valid options creates IChatClient
+
+**CopilotExtractorOptionsTests.cs** (5+4 theory tests):
+- Default values match documented defaults (gpt-4o, 4096 tokens, 0.1 temp, etc.)
+- Full construction with all custom properties
+- ApiKey set/retrieve
+- Temperature accepts valid range (Theory: 0.0, 0.5, 1.0)
+- MaxNodesPerFile accepts positive values (Theory: 1, 15, 100)
+
+**Ingest Tests (1 file, 13 tests)**:
+
+**UrlIngesterTests.cs** (13 tests):
+- Valid URL with mock HTTP handler returns content with frontmatter
+- Invalid URL (not-a-url) → ArgumentException
+- Null URL → ArgumentNullException
+- Empty URL → ArgumentException
+- FTP scheme → ArgumentException
+- Localhost → ArgumentException (security)
+- Private IP 192.168.x.x → ArgumentException (security)
+- Webpage content includes YAML frontmatter (type: webpage, captured_at)
+- GitHub URL detected as type: github_repo
+- IngestToFileAsync creates file on disk
+- IngestToFileAsync with author includes contributor metadata
+- HTTP 500 → HttpRequestException
+
+**Key decisions**:
+- Used `Graphify.Tests.ModelTests` namespace (not `Graphify.Tests.Models`) to avoid ambiguity with `Graphify.Models` in existing ClusterEngineTests references
+- FakeChatClient implements IChatClient with fixed response for SemanticExtractor testing
+- FakeHttpHandler extends HttpMessageHandler for UrlIngester testing without network
+- Null URL test uses `ArgumentNullException` (not `ArgumentException`) because `ThrowIfNullOrWhiteSpace` throws the more specific type for null
+- Pre-existing regression test failures (SanitizeLabel_NullByte, TimeoutRegressionTests) self-healed during this run
+- All tests use IDisposable + temp directory pattern for file I/O cleanup
+
+**Test run**: 404 tests passing (383 unit + 21 integration), 0 failures. 181 new tests added.
+
