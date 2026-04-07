@@ -21,7 +21,7 @@ graphify-dotnet is a .NET 10 port of the Python graphify project — an AI knowl
 - **SHA256 caching**: Only re-process changed files
 - **Language support**: Python, TypeScript, JavaScript, Go, Rust, Java, C, C++, C#, Ruby, Kotlin, Scala, PHP, Swift, Lua
 - **Multimodal**: Handles code, markdown, PDFs, and images (diagrams, screenshots, whiteboard photos)
-- **Multi-provider AI**: Azure OpenAI and Ollama via unified `ChatClientFactory`
+- **Multi-provider AI**: Azure OpenAI, Ollama, and GitHub Copilot SDK via unified `ChatClientFactory`
 - **Global dotnet tool**: Install with `dotnet tool install -g graphify-dotnet` and run from anywhere
 - **Incremental watch mode**: File change detection with SHA256 caching — only re-processes what changed
 
@@ -58,6 +58,7 @@ graphify-dotnet supports multiple AI backends through a unified `ChatClientFacto
 |----------|----------|-------|
 | Azure OpenAI | Enterprise, private endpoints | [Setup Guide](docs/setup-azure-openai.md) |
 | Ollama | Local/offline, privacy | [Setup Guide](docs/setup-ollama.md) |
+| Copilot SDK | GitHub Copilot subscribers, zero-config | [Setup Guide](docs/setup-copilot-sdk.md) |
 
 ## Usage
 
@@ -98,6 +99,12 @@ graphify run . --provider azureopenai
 
 # Run with Ollama (local models)
 graphify run . --provider ollama
+
+# Run with GitHub Copilot SDK (no API keys needed)
+graphify run . --provider copilotsdk
+
+# Copilot SDK with a specific model
+graphify run . --provider copilotsdk --model gpt-4o
 
 # Specify endpoint and API key (Azure OpenAI)
 graphify run . --provider azureopenai --endpoint https://myresource.openai.azure.com/ --api-key sk-... --deployment gpt-4o
@@ -145,6 +152,9 @@ export GRAPHIFY__AzureOpenAI__Endpoint=https://myresource.openai.azure.com/
 export GRAPHIFY__AzureOpenAI__ApiKey=sk-...
 export GRAPHIFY__AzureOpenAI__DeploymentName=gpt-4o
 
+# Using environment variables (Copilot SDK — no keys needed)
+export GRAPHIFY__Provider=CopilotSdk
+
 # Using user secrets
 dotnet user-secrets set "Graphify:Provider" "Ollama"
 dotnet user-secrets set "Graphify:Ollama:Endpoint" "http://localhost:11434"
@@ -159,6 +169,7 @@ graphify config show
 For detailed setup guides, see:
 - [Azure OpenAI Setup](docs/setup-azure-openai.md)
 - [Ollama Setup](docs/setup-ollama.md)
+- [Copilot SDK Setup](docs/setup-copilot-sdk.md)
 
 ## Architecture
 
@@ -262,6 +273,7 @@ dotnet run --project src/Graphify.Cli -- run .
 ### Setup Guides
 - [Azure OpenAI Setup](docs/setup-azure-openai.md)
 - [Ollama Setup](docs/setup-ollama.md)
+- [Copilot SDK Setup](docs/setup-copilot-sdk.md)
 - [Global Tool Install](docs/dotnet-tool-install.md)
 - [Watch Mode](docs/watch-mode.md)
 
