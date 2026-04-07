@@ -100,7 +100,16 @@ static async Task<(IChatClient? chatClient, bool verbose)> ResolveProviderAsync(
     {
         chatClient = await ChatClientResolver.ResolveAsync(graphifyConfig);
         if (chatClient != null)
+        {
             Console.WriteLine($"\u2713 AI provider: {graphifyConfig.Provider}");
+
+            // Data privacy warning for cloud AI providers
+            var provider = graphifyConfig.Provider?.ToLowerInvariant();
+            if (provider == "azureopenai" || provider == "copilotsdk")
+            {
+                Console.WriteLine($"\u26a0\ufe0f  Note: Source code contents will be sent to {graphifyConfig.Provider} for semantic analysis. Use --provider ast for local-only analysis.");
+            }
+        }
     }
     catch (Exception ex)
     {

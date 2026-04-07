@@ -188,6 +188,15 @@ public sealed class PipelineRunner
 
             // Stage 6: Export
             await WriteLineAsync("[6/6] Exporting results...");
+
+            // Validate output directory to prevent path traversal
+            var validator = new Graphify.Security.InputValidator();
+            var outputValidation = validator.ValidatePath(outputDir, Environment.CurrentDirectory);
+            if (!outputValidation.IsValid)
+            {
+                throw new ArgumentException($"Invalid output directory: {string.Join("; ", outputValidation.Errors)}");
+            }
+
             Directory.CreateDirectory(outputDir);
 
             foreach (var format in formats)

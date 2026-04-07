@@ -229,20 +229,12 @@ public sealed class UrlIngester : IDataIngester
 
     private static void ValidateUrl(string url)
     {
-        if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+        // Delegate to centralized InputValidator for complete SSRF protection
+        var validator = new Graphify.Security.InputValidator();
+        var result = validator.ValidateUrl(url);
+        if (!result.IsValid)
         {
-            throw new ArgumentException($"Invalid URL: {url}", nameof(url));
-        }
-
-        if (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps)
-        {
-            throw new ArgumentException($"URL must use HTTP or HTTPS: {url}", nameof(url));
-        }
-
-        // Security: block local/private IPs
-        if (uri.Host == "localhost" || uri.Host == "127.0.0.1" || uri.Host.StartsWith("192.168.") || uri.Host.StartsWith("10."))
-        {
-            throw new ArgumentException($"Cannot fetch from local/private network: {url}", nameof(url));
+            throw new ArgumentException(string.Join("; ", result.Errors), nameof(url));
         }
     }
 

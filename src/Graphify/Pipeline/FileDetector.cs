@@ -86,6 +86,15 @@ public class FileDetector : IPipelineStage<FileDetectorOptions, IReadOnlyList<De
         }
 
         var rootPath = Path.GetFullPath(input.RootPath);
+
+        // Validate root scan directory
+        var validator = new Graphify.Security.InputValidator();
+        var pathValidation = validator.ValidatePath(rootPath);
+        if (!pathValidation.IsValid)
+        {
+            throw new ArgumentException($"Invalid root path: {string.Join("; ", pathValidation.Errors)}");
+        }
+
         var gitTrackedFiles = input.RespectGitIgnore
             ? await GetGitTrackedFilesAsync(rootPath, cancellationToken)
             : null;
@@ -151,6 +160,27 @@ public class FileDetector : IPipelineStage<FileDetectorOptions, IReadOnlyList<De
                     continue;
                 }
 
+                // FINDING-005: Skip symlinks to prevent following links outside the project
+                try
+                {
+                    var dirInfo = new DirectoryInfo(dir);
+                    if (dirInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    {
+                        continue;
+                    }
+
+                    // Verify resolved path is still within root
+                    var resolvedDir = Path.GetFullPath(dir);
+                    if (!resolvedDir.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+                catch (IOException)
+                {
+                    continue;
+                }
+
                 queue.Enqueue(dir);
             }
 
@@ -159,6 +189,26 @@ public class FileDetector : IPipelineStage<FileDetectorOptions, IReadOnlyList<De
                 var fileName = Path.GetFileName(file);
                 
                 if (fileName.StartsWith('.'))
+                {
+                    continue;
+                }
+
+                // FINDING-005: Skip symlinked files
+                try
+                {
+                    var fileInfo = new FileInfo(file);
+                    if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    {
+                        continue;
+                    }
+
+                    var resolvedFile = Path.GetFullPath(file);
+                    if (!resolvedFile.StartsWith(rootPath, StringComparison.OrdinalIgnoreCase))
+                    {
+                        continue;
+                    }
+                }
+                catch (IOException)
                 {
                     continue;
                 }

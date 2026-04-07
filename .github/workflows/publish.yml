@@ -30,13 +30,17 @@ jobs:
 
       - name: Determine version
         id: version
+        env:
+          TAG_NAME: ${{ github.event.release.tag_name }}
+          INPUT_VERSION: ${{ inputs.version }}
+          EVENT_NAME: ${{ github.event_name }}
         run: |
-          if [[ "${{ github.event_name }}" == "release" ]]; then
-            VERSION="${{ github.event.release.tag_name }}"
+          if [[ "$EVENT_NAME" == "release" ]]; then
+            VERSION="$TAG_NAME"
             VERSION="${VERSION#v}"
             VERSION="${VERSION#.}"
-          elif [[ -n "${{ inputs.version }}" ]]; then
-            VERSION="${{ inputs.version }}"
+          elif [[ -n "$INPUT_VERSION" ]]; then
+            VERSION="$INPUT_VERSION"
           else
             VERSION=$(grep -oP '<Version>\K[^<]+' src/Graphify.Cli/Graphify.Cli.csproj)
           fi
