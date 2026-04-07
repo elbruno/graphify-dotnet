@@ -284,6 +284,208 @@ Added full NuGet tool metadata to `Graphify.Cli.csproj`:
 - Watch mode enables dev-loop usage (edit code → see graph update)
 - WatchMode is reusable outside CLI (e.g., MCP server could use it)
 
+### Decision: Documentation Overhaul — Neo's Improvement Plan
+
+**Author:** Trinity (Core Developer)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+#### Context
+
+Neo audited all 19 docs + README as a new user and produced a 13-item improvement plan (`neo-docs-improvement-plan.md`). Implemented the top 8 priority items covering the critical gap: no guided tutorial, shallow worked example, scattered troubleshooting, and inconsistencies across docs.
+
+#### What Changed
+
+##### New Files
+- `docs/getting-started.md` — Real step-by-step tutorial (install → first analysis → interpret results → add AI → try your own code)
+- `docs/troubleshooting.md` — Central FAQ with 10 common problems
+- `ROADMAP.md` — Moved from `docs/future-plans.md` (OSS convention)
+- `.squad/image-prompts.md` — Moved from `docs/` (not user-facing)
+
+##### Rewritten
+- `docs/worked-example.md` — Expanded from 48 to ~250 lines with real data walkthrough
+
+##### Fixed
+- Default formats: Normalized to `json,html,report` everywhere (was inconsistent between docs)
+- Blog post: Fixed non-existent CLI commands (`query`, `explain`, `export`) and format name (`GraphML`)
+- Obsidian: Removed `--filter "community:Auth"` (flag doesn't exist)
+- Ollama: Fixed user-facing code to use `AiProviderOptions` + `ChatClientFactory` instead of internal `OllamaOptions`
+- dotnet-tool-install: Added `copilotsdk` to provider list
+- Cross-links: All 7 format-*.md files now link to worked example
+- README: Added Supported Languages table, AST-only note, Getting Started + Troubleshooting in docs table
+
+#### Key Decision
+
+All user-facing code examples use `AiProviderOptions` + `ChatClientFactory.Create()` as the unified API. The internal `OllamaOptions`/`OllamaClientFactory` classes exist but aren't the recommended entry point for docs.
+
+#### Impact
+
+A new user can now: install → run getting-started tutorial → understand output → explore worked example → troubleshoot problems — all without reading every doc. The docs table in README puts Getting Started first.
+
+### Decision: Documentation Fixes: SDK API + Config Priority + JSON Schema
+
+**Author:** Morpheus (SDK Dev)  
+**Date:** 2026-04-07  
+**Status:** Applied
+
+#### Context
+
+Tank's validation report identified critical documentation errors across 8 files. All errors were in SDK-related content — wrong API methods, wrong configuration priority, and a fabricated JSON schema.
+
+#### Changes Made
+
+##### 1. M.E.AI API Migration (setup-ollama.md, setup-azure-openai.md)
+- `client.CompleteAsync(prompt)` → `client.GetResponseAsync([new ChatMessage(ChatRole.User, prompt)])`
+- `response.Message` → `response.Text`
+- Verified against SemanticExtractor.cs and CopilotChatClient.cs
+
+##### 2. Configuration Priority (4 docs)
+- Swapped env vars and user secrets to match ConfigurationFactory.cs
+- Correct order: CLI args > user secrets > env vars > appsettings.local.json > appsettings.json
+- Added missing appsettings.local.json layer to 3 setup docs
+
+##### 3. JSON Schema (format-json.md)
+- Removed fictitious top-level `communities` array
+- Removed non-existent node fields: `degree`, `description`
+- Removed non-existent edge field: `extractionMethod`
+- Fixed metadata fields to snake_case matching JsonExporter.cs DTOs
+- Removed non-existent `version` and `source` metadata fields
+
+##### 4. Other Fixes
+- worked-example.md: 35 → 30 obsidian files
+- watch-mode.md: namespace, constructor params, default format
+- dotnet-tool-install.md: added `-p` short alias
+- GitHub URLs: BrunoCapuano → elbruno in 2 docs
+
+#### Impact
+
+All documentation now matches actual source code. No code changes were needed — docs-only fixes.
+
+### Decision: Interactive `config set` Wizard + ConfigurationFactory CopilotSdk Routing
+
+**Author:** Trinity (Core Developer)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+#### Context
+
+The CLI had `config show` but no way to interactively set provider configuration. Additionally, `ConfigurationFactory` had a bug where `--model` and `--endpoint` CLI overrides didn't recognize the CopilotSdk provider, falling through to Azure OpenAI defaults.
+
+#### Decision
+
+##### 1. `config set` uses Console.ReadLine() interactive prompts
+- Numbered menu: 1=Ollama, 2=Azure OpenAI, 3=Copilot SDK
+- Provider-specific follow-up prompts with defaults where applicable
+- Azure OpenAI requires all fields (endpoint, key, deployment, model)
+- Ollama/CopilotSdk have sensible defaults
+
+##### 2. Persistence via `dotnet user-secrets set --id`
+- Uses `System.Diagnostics.Process` to shell out to `dotnet user-secrets`
+- UserSecretsId is hardcoded: `graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62`
+- Each key/value pair saved individually
+
+##### 3. ConfigurationFactory now routes all three providers
+- `--model` routes to correct section key per provider
+- `--endpoint` is silently ignored for CopilotSdk (no endpoint needed)
+
+#### Impact
+
+- Users can now configure providers without manually editing secrets.json
+- CopilotSdk users can use `--model` CLI flag correctly
+- No breaking changes to existing commands
+
+### Decision: ConfigPersistence, ConfigurationFactory & CopilotSdk Test Coverage
+
+**Author:** Tank (Tester)  
+**Date:** 2026-04-07  
+**Status:** Implemented
+
+#### Context
+
+Trinity implemented an interactive configuration wizard (ConfigWizard, ConfigPersistence, ConfigurationFactory updates) for the CLI using Spectre.Console, plus CopilotSdk routing fixes. Tests were needed for file I/O, configuration layering, and CopilotSdk CLI override routing.
+
+#### Decision
+
+- **ConfigWizard is NOT unit-testable** in its current form — it uses static `AnsiConsole` methods that require a TTY. If we want wizard-level testing in the future, we'd need to inject `IAnsiConsole` instead.
+- **ConfigPersistence** is fully tested via file round-trips. The `[Collection("ConfigFile")]` attribute is required on any test class that reads/writes `appsettings.local.json` in `AppContext.BaseDirectory`.
+- **ConfigurationFactory** integration tests write temp files and verify layer priority (local file < CLI args).
+- **CopilotSdk routing** tests verify that `CliProviderOptions(Provider: "copilotsdk", Model: X)` routes to `Graphify:CopilotSdk:ModelId` (not AzureOpenAI), and that `--endpoint` is silently dropped.
+
+#### Impact
+
+- Tests covering ConfigPersistence code paths, ConfigurationFactory local config loading, and CopilotSdk CLI override routing.
+- Any future test class that touches `appsettings.local.json` in the test output directory MUST use `[Collection("ConfigFile")]` to avoid race conditions.
+- appsettings.json defaults (Ollama endpoint) are loaded by ConfigurationFactory.Build() — tests must not assert those are null
+
+### Decision: Comprehensive Plan for NuGet Publishing graphify-dotnet as a dotnet Global Tool
+
+**Author:** Neo (Lead/Architect)  
+**Date:** 2026-04-07  
+**Status:** Plan (not yet implemented)  
+**Scope:** NuGet.org publishing workflow, icon/metadata, OIDC trusted publishing, version management  
+**Requested by:** Bruno Capuano
+
+#### Problem Statement
+
+**Current state:**  
+Graphify-dotnet targets `net10.0` and already has `Graphify.Cli.csproj` configured with:
+- `PackAsTool=true`, `ToolCommandName=graphify`, `PackageId=graphify-dotnet`
+- Version 0.1.0, MIT license, README.md included
+
+**Gap:**  
+The project is not distributable as a public NuGet package. Users cannot install via `dotnet tool install -g graphify-dotnet`.
+
+**What's missing:**
+1. Package icon (`images/nuget_logo.png`)
+2. Symbol package configuration (`<IncludeSymbols>`, `<SymbolPackageFormat>`)
+3. `<PackageIcon>` metadata pointing to the icon
+4. GitHub Actions publish workflow (`.github/workflows/publish.yml`)
+5. GitHub `release` environment with NUGET_USER secret
+6. OIDC trusted publisher registration on NuGet.org
+7. Version management strategy (Git tags, validation)
+8. README badges linking to NuGet package page
+9. Team documentation on release procedures
+
+#### Approach
+
+**Core strategy:**  
+Adapt the ElBruno.MarkItDotNet `publish.yml` pattern for our .NET 10 tooling context.
+
+**Key differences from reference:**
+- ElBruno targets `net8.0` (multi-target library); graphify-dotnet targets `net10.0` only (single-target tool)
+- Use OIDC trusted publishing (no long-lived API keys in repo)
+- Trigger on GitHub `release` (published) event + manual `workflow_dispatch` with optional version override
+
+**Publish workflow:**
+1. Create GitHub release with tag `v0.1.0` (version extracted, `v` prefix stripped)
+2. Workflow triggers: restore → build (Release) → test → pack (generates .nupkg + .snupkg)
+3. OIDC login to NuGet.org via `NuGet/login@v1`
+4. Push packages with `--skip-duplicate` (safe for re-runs)
+5. Add NuGet badges to README
+
+**Security:**
+- No API keys in repo; OIDC handles auth
+- GitHub's `id-token: write` permission enables short-lived JWT exchange
+- One-time NuGet.org trust configuration (secure, maintainable)
+
+#### Success Criteria
+
+✅ `graphify-dotnet` published to NuGet.org  
+✅ Installation works: `dotnet tool install -g graphify-dotnet`  
+✅ Command available in PATH: `graphify --help`  
+✅ Package page shows icon, metadata, download counts  
+✅ README badges link to package page  
+✅ Publish workflow runs automatically on GitHub release  
+✅ No long-lived API keys in repo  
+✅ Team knows how to create releases and monitor status  
+
+#### Dependencies
+
+- GitHub repository access (Settings → Environments)
+- NuGet.org account (Bruno's username)
+- .NET 10 SDK availability on GitHub runners
+- No external dependencies added (existing packages sufficient)
+
 ## Governance
 
 - All meaningful changes require team consensus

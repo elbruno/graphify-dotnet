@@ -230,3 +230,5 @@ Documentation reduces user friction and enables full feature adoption.
 8. **GitHub URLs:** Fixed `BrunoCapuano/graphify-dotnet` → `elbruno/graphify-dotnet` in setup-ollama.md and setup-azure-openai.md.
 
 **Key Pattern:** The correct M.E.AI 10.x API is `GetResponseAsync` returning `ChatResponse` with `.Text` property. `CompleteAsync`/`.Message` is the old 9.x API. setup-copilot-sdk.md was already correct — it served as the reference.
+
+**Decision Routing:** All fixes merged to `.squad/decisions.md` under "Documentation Fixes: SDK API + Config Priority + JSON Schema" decision (status: Applied). Tank's validation report archived and decision inbox cleared.

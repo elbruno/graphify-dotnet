@@ -481,3 +481,14 @@ Validated all 15 docs against source code and CLI output. Key findings:
 **Validated correct:** CLI commands (run, watch, benchmark, config + subcommands), all flags/options, factory classes (ChatClientFactory, OllamaClientFactory, AzureOpenAIClientFactory, CopilotSdkClientFactory), all 7 exporter classes, WatchMode architecture, tool metadata in csproj, sample directory structure, doc link integrity.
 
 Report written to: `.squad/decisions/inbox/tank-docs-validation.md`
+
+### 2026-04-07: Documentation Validation Report Merged to Decisions
+
+**What:** Tank's comprehensive validation report of all 19 docs + README was reviewed and findings merged into `.squad/decisions.md` as formal decision (status: Applied).
+
+**Report Summary:**
+- **6 critical errors identified:** Config priority order swapped (4 docs), wrong M.E.AI API methods (2 docs), fabricated JSON schema fields, file counts wrong, namespace errors, GitHub URLs inconsistent
+- **3 misleading items:** Default format stated inconsistently across docs, NuGet package not published but marketed as ready, missing config layer (5 layers shown as 4)
+- **All items validated against source:** Every code example, CLI command, and sample data verified against actual source code files, line numbers, and working output
+
+**Routing:** All critical errors fixed by Morpheus in follow-up sprint. Tank's validation report cleared from decision inbox and merged into decisions.md under "Documentation Fixes: SDK API + Config Priority + JSON Schema" decision.

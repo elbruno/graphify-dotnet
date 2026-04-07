@@ -715,3 +715,41 @@
 - `--filter` flag doesn't exist in CLI reference — removed the misleading example from format-obsidian.md.
 - `MiniLibrary` appears 5x in god nodes because each file's `using MiniLibrary` creates a separate import node. Called this out in the docs as expected AST behavior.
 
+### 2026-04-07: Documentation Improvement Sprint — Implementation Phase
+
+**What:** Implemented all 8 priority items from Neo's docs improvement audit. Largest sprint of the team: rewrote/created 9 docs, fixed 19 inconsistencies, restructured docs folder, updated README twice.
+
+**Artifacts Created:**
+1. **docs/getting-started.md** — 200-line step-by-step tutorial: install → first analysis → interpret results → add AI provider → try your own code. This was the #1 gap identified by Neo.
+2. **docs/troubleshooting.md** — Central FAQ with 10 common problems (no output, empty graph, file type support, watch mode issues, .NET SDK errors, AST-only mode explanation)
+3. **ROADMAP.md** — Moved future-plans.md from user-facing /docs/ to root (OSS convention)
+4. **.squad/image-prompts.md** — Moved marketing assets out of docs folder
+
+**Rewrites:**
+- **docs/worked-example.md** — Expanded from 48 lines to ~250 lines with real data walkthrough, showing GRAPH_REPORT.md god nodes, graph.json structure, what to look for in graph.html, Obsidian vault explanation, Neo4j import flow, interpretation guide
+
+**Inconsistency Fixes (19 items):**
+- Default format: Normalized to `json,html,report` everywhere (was `json,html` in some docs, `json,html,report` in others)
+- Blog post: Fixed non-existent CLI commands (query, explain, export should not exist), format name (GraphML → correct formats)
+- Obsidian doc: Removed `--filter "community:Auth"` (flag doesn't exist in CLI)
+- Ollama doc: Fixed code examples to use `AiProviderOptions` + `ChatClientFactory` (not internal `OllamaOptions`)
+- dotnet-tool-install: Added `copilotsdk` to provider list
+- Cross-links: All 7 format-*.md now link back to worked example
+- README: Added Supported Languages table, AST-only mode note, Getting Started + Troubleshooting in docs table
+
+**Test Coverage Updates:**
+- Fixed stale test signatures in SemanticExtractorTests (updated to `IEnumerable<ChatMessage>`)
+- Fixed ambiguous HtmlExporter.ExportAsync calls in ExportIntegrationTests
+
+**Decision Routing:**
+- Neo's 13-item plan → implemented top 8, remaining items (items 9-13) deferred as lower priority
+- Decisions merged to `.squad/decisions.md` under "Documentation Overhaul" decision (status: Implemented)
+- All decision inbox files cleared
+
+**Metrics:**
+- 28 files changed
+- 1,337 lines added
+- 9 new/rewritten docs
+- 0 bugs introduced
+- All tests passing
+
