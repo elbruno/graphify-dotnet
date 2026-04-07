@@ -151,20 +151,48 @@ network.once('stabilizationIterationsDone', () => {
 function showInfo(nodeId) {
   const n = nodesDS.get(nodeId);
   if (!n) return;
+  const info = document.getElementById('info-content');
+  info.textContent = '';
+
+  function addField(label, value) {
+    const div = document.createElement('div');
+    div.className = 'field';
+    if (label) { const b = document.createElement('b'); b.textContent = label; div.appendChild(b); }
+    const t = document.createTextNode(value); div.appendChild(t);
+    info.appendChild(div);
+  }
+
+  const labelDiv = document.createElement('div');
+  labelDiv.className = 'field';
+  const labelB = document.createElement('b');
+  labelB.textContent = n.label;
+  labelDiv.appendChild(labelB);
+  info.appendChild(labelDiv);
+
+  addField('Type: ', n._file_type || 'unknown');
+  addField('Community: ', n._community_name);
+  addField('Source: ', n._source_file || '-');
+  addField('Degree: ', String(n._degree));
+
   const neighborIds = network.getConnectedNodes(nodeId);
-  const neighborItems = neighborIds.map(nid => {
-    const nb = nodesDS.get(nid);
-    const color = nb ? nb.color.background : '#555';
-    return `<span class="neighbor-link" style="border-left-color:${color}" onclick="focusNode('${nid}')">${nb ? nb.label : nid}</span>`;
-  }).join('');
-  document.getElementById('info-content').innerHTML = `
-    <div class="field"><b>${n.label}</b></div>
-    <div class="field">Type: ${n._file_type || 'unknown'}</div>
-    <div class="field">Community: ${n._community_name}</div>
-    <div class="field">Source: ${n._source_file || '-'}</div>
-    <div class="field">Degree: ${n._degree}</div>
-    ${neighborIds.length ? `<div class="field" style="margin-top:8px;color:#aaa;font-size:11px">Neighbors (${neighborIds.length})</div><div id="neighbors-list">${neighborItems}</div>` : ''}
-  `;
+  if (neighborIds.length) {
+    const hdr = document.createElement('div');
+    hdr.className = 'field'; hdr.style.marginTop = '8px'; hdr.style.color = '#aaa'; hdr.style.fontSize = '11px';
+    hdr.textContent = 'Neighbors (' + neighborIds.length + ')';
+    info.appendChild(hdr);
+    const list = document.createElement('div');
+    list.id = 'neighbors-list';
+    neighborIds.forEach(nid => {
+      const nb = nodesDS.get(nid);
+      const span = document.createElement('span');
+      span.className = 'neighbor-link';
+      span.style.borderLeftColor = nb ? nb.color.background : '#555';
+      span.textContent = nb ? nb.label : nid;
+      span.onclick = () => focusNode(nid);
+      list.appendChild(span);
+    });
+    info.appendChild(list);
+  }
 }
 
 function focusNode(nodeId) {
@@ -213,9 +241,13 @@ const legendEl = document.getElementById('legend');
 LEGEND.forEach(c => {
   const item = document.createElement('div');
   item.className = 'legend-item';
-  item.innerHTML = `<div class="legend-dot" style="background:${c.color}"></div>
-    <span class="legend-label">${c.label}</span>
-    <span class="legend-count">${c.count}</span>`;
+  const dot = document.createElement('div');
+  dot.className = 'legend-dot'; dot.style.background = c.color;
+  const lbl = document.createElement('span');
+  lbl.className = 'legend-label'; lbl.textContent = c.label;
+  const cnt = document.createElement('span');
+  cnt.className = 'legend-count'; cnt.textContent = c.count;
+  item.appendChild(dot); item.appendChild(lbl); item.appendChild(cnt);
   item.onclick = () => {
     if (hiddenCommunities.has(c.cid)) {
       hiddenCommunities.delete(c.cid);

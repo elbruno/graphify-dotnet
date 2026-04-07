@@ -298,6 +298,7 @@ public sealed class Neo4jExporter : IGraphExporter
         return value
             .Replace("\\", "\\\\")
             .Replace("\"", "\\\"")
+            .Replace("'", "\\'")
             .Replace("\n", "\\n")
             .Replace("\r", "\\r")
             .Replace("\t", "\\t");

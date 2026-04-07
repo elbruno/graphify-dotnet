@@ -14,7 +14,7 @@ public sealed class HtmlExporter : IGraphExporter
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping,
+        Encoder = JavaScriptEncoder.Default,
         WriteIndented = false
     };
 

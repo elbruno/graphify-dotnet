@@ -1,15 +1,18 @@
 namespace Graphify.Cli.Configuration;
 
+using System.Diagnostics;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using Spectre.Console;
 
 /// <summary>
 /// Handles saving/loading config to appsettings.local.json in the app directory.
+/// API keys are stored separately via dotnet user-secrets for security.
 /// </summary>
 public static class ConfigPersistence
 {
     private const string LocalConfigFileName = "appsettings.local.json";
+    private const string UserSecretsId = "graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62";
 
     private static readonly JsonSerializerOptions SerializerOptions = new()
     {
@@ -26,7 +29,22 @@ public static class ConfigPersistence
     {
         var path = GetLocalConfigPath();
 
-        // Build a wrapper object matching the appsettings.json structure
+        // Persist API key separately via user-secrets (never write it to JSON)
+        if (!string.IsNullOrWhiteSpace(config.AzureOpenAI.ApiKey))
+        {
+            var stored = StoreApiKeyInUserSecrets(config.AzureOpenAI.ApiKey);
+            if (stored)
+            {
+                AnsiConsole.MarkupLine("[green]🔑 API key stored securely via dotnet user-secrets.[/]");
+            }
+            else
+            {
+                AnsiConsole.MarkupLine("[yellow]⚠️  Could not store API key in user-secrets. " +
+                    "Run 'dotnet user-secrets set \"Graphify:AzureOpenAI:ApiKey\" \"<your-key>\"' manually.[/]");
+            }
+        }
+
+        // Build a wrapper object matching the appsettings.json structure (no API key)
         var wrapper = new Dictionary<string, object> { ["Graphify"] = BuildSerializableConfig(config) };
 
         try
@@ -35,6 +53,7 @@ public static class ConfigPersistence
             File.WriteAllText(path, json);
 
             AnsiConsole.MarkupLine($"[green]✅ Configuration saved to:[/] [grey]{path}[/]");
+            AnsiConsole.MarkupLine("[grey]   (API keys are stored separately in user-secrets, not in this file)[/]");
         }
         catch (Exception ex) when (ex is UnauthorizedAccessException or IOException)
         {
@@ -63,9 +82,45 @@ public static class ConfigPersistence
 
             return JsonSerializer.Deserialize<GraphifyConfig>(section.GetRawText(), SerializerOptions);
         }
+        catch (JsonException ex)
+        {
+            AnsiConsole.MarkupLine($"[yellow]⚠️  Could not load config: {ex.Message}[/]");
+            return null;
+        }
+        catch (IOException ex)
+        {
+            AnsiConsole.MarkupLine($"[yellow]⚠️  Could not load config: {ex.Message}[/]");
+            return null;
+        }
+    }
+
+    /// <summary>
+    /// Stores the API key securely using dotnet user-secrets.
+    /// </summary>
+    private static bool StoreApiKeyInUserSecrets(string apiKey)
+    {
+        try
+        {
+            var startInfo = new ProcessStartInfo
+            {
+                FileName = "dotnet",
+                Arguments = $"user-secrets set \"Graphify:AzureOpenAI:ApiKey\" \"{apiKey}\" --id \"{UserSecretsId}\"",
+                RedirectStandardOutput = true,
+                RedirectStandardError = true,
+                UseShellExecute = false,
+                CreateNoWindow = true
+            };
+
+            using var process = Process.Start(startInfo);
+            if (process == null)
+                return false;
+
+            process.WaitForExit(TimeSpan.FromSeconds(10));
+            return process.ExitCode == 0;
+        }
         catch
         {
-            return null;
+            return false;
         }
     }
 
@@ -83,10 +138,10 @@ public static class ConfigPersistence
         switch (config.Provider?.ToLowerInvariant())
         {
             case "azureopenai":
+                // API key is stored in user-secrets, NOT in the JSON file
                 result["AzureOpenAI"] = new
                 {
                     config.AzureOpenAI.Endpoint,
-                    config.AzureOpenAI.ApiKey,
                     config.AzureOpenAI.DeploymentName,
                     config.AzureOpenAI.ModelId
                 };
