@@ -1,40 +1,16 @@
+using Graphify.Sdk;
 using Xunit;
 
 namespace Graphify.Tests.Sdk;
 
 /// <summary>
 /// Tests for ChatClientFactory, AiProvider enum, and AiProviderOptions.
-/// Factory tests are commented out until implementation lands in Graphify.Sdk.
-/// Enum and record contract tests use inline definitions to validate the expected API shape.
 /// </summary>
 public class ChatClientFactoryTests
 {
     // ──────────────────────────────────────────────
-    // AiProvider enum contract tests
-    // Uses inline enum to validate expected shape.
-    // Replace with `using Graphify.Sdk;` when real type lands.
+    // AiProvider enum contract tests (now using real types)
     // ──────────────────────────────────────────────
-
-    /// <summary>
-    /// Expected shape of the AiProvider enum.
-    /// Remove this and use the real type from Graphify.Sdk once implemented.
-    /// </summary>
-    private enum AiProvider
-    {
-        AzureOpenAI,
-        Ollama
-    }
-
-    /// <summary>
-    /// Expected shape of the AiProviderOptions record.
-    /// Remove this and use the real type from Graphify.Sdk once implemented.
-    /// </summary>
-    private record AiProviderOptions(
-        AiProvider Provider,
-        string ApiKey = "",
-        string Endpoint = "",
-        string ModelId = "",
-        string DeploymentName = "");
 
     [Fact]
     [Trait("Category", "Sdk")]
@@ -94,38 +70,85 @@ public class ChatClientFactoryTests
 
     [Fact]
     [Trait("Category", "Sdk")]
-    public void AiProviderOptions_DefaultValues_AreEmpty()
+    public void AiProviderOptions_DefaultValues_AreNull()
     {
         var options = new AiProviderOptions(Provider: AiProvider.AzureOpenAI);
 
-        Assert.Equal("", options.ApiKey);
-        Assert.Equal("", options.Endpoint);
-        Assert.Equal("", options.ModelId);
-        Assert.Equal("", options.DeploymentName);
+        Assert.Null(options.ApiKey);
+        Assert.Null(options.Endpoint);
+        Assert.Null(options.ModelId);
+        Assert.Null(options.DeploymentName);
     }
 
     // ──────────────────────────────────────────────
     // ChatClientFactory.Create tests
-    // TODO: Uncomment when ChatClientFactory lands in Graphify.Sdk
     // ──────────────────────────────────────────────
 
-    // [Fact]
-    // [Trait("Category", "Sdk")]
-    // public void Create_UnknownProvider_ThrowsArgumentException()
-    // {
-    //     var options = new Graphify.Sdk.AiProviderOptions(
-    //         Provider: (Graphify.Sdk.AiProvider)999,
-    //         ApiKey: "key");
-    //
-    //     Assert.Throws<ArgumentException>(() =>
-    //         ChatClientFactory.Create(options));
-    // }
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_NullOptions_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() =>
+            ChatClientFactory.Create(null!));
+    }
 
-    // [Fact]
-    // [Trait("Category", "Sdk")]
-    // public void Create_NullOptions_ThrowsArgumentNullException()
-    // {
-    //     Assert.Throws<ArgumentNullException>(() =>
-    //         ChatClientFactory.Create(null!));
-    // }
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_UnknownProvider_ThrowsArgumentException()
+    {
+        var options = new AiProviderOptions(
+            Provider: (AiProvider)999);
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatClientFactory.Create(options));
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_Ollama_WithDefaults_ReturnsClient()
+    {
+        var options = new AiProviderOptions(Provider: AiProvider.Ollama);
+
+        var client = ChatClientFactory.Create(options);
+        Assert.NotNull(client);
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_AzureOpenAI_MissingEndpoint_Throws()
+    {
+        var options = new AiProviderOptions(
+            Provider: AiProvider.AzureOpenAI,
+            ApiKey: "key",
+            DeploymentName: "deploy");
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatClientFactory.Create(options));
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_AzureOpenAI_MissingApiKey_Throws()
+    {
+        var options = new AiProviderOptions(
+            Provider: AiProvider.AzureOpenAI,
+            Endpoint: "https://test.openai.azure.com/",
+            DeploymentName: "deploy");
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatClientFactory.Create(options));
+    }
+
+    [Fact]
+    [Trait("Category", "Sdk")]
+    public void Create_AzureOpenAI_MissingDeploymentName_Throws()
+    {
+        var options = new AiProviderOptions(
+            Provider: AiProvider.AzureOpenAI,
+            Endpoint: "https://test.openai.azure.com/",
+            ApiKey: "key");
+
+        Assert.Throws<ArgumentException>(() =>
+            ChatClientFactory.Create(options));
+    }
 }
