@@ -176,4 +176,43 @@ Graphify.Mcp.exe <path-to-graph.json> [--verbose]
 - `Graphify.Sdk.csproj` — Added 3 new package references
 - `GitHubModelsClientFactory.cs` — Replaced NotImplementedException with working OpenAI client code
 
+### 2026-04-06: Export Format Documentation (7 Guides + Overview)
+
+**What:** Created comprehensive user-facing documentation for all 7 export formats supported by graphify-dotnet CLI.
+
+**Artifacts Created:**
+1. **docs/export-formats.md** — Overview with format comparison table, quick-start examples, and routing guide for choosing the right format
+2. **docs/format-html.md** — Interactive vis-network viewer; click nodes, search, filter, zoom/pan; best for exploration and presentations
+3. **docs/format-json.md** — Machine-readable graph data; JSON schema, loading examples (C#/JS/Python), jq piping, CI/CD integration
+4. **docs/format-svg.md** — Static vector image; embed in docs, print to PDF, convert to PNG; for documentation and offline viewing
+5. **docs/format-neo4j.md** — Cypher script for Neo4j import; advanced queries, shortest paths, cycle detection, bulk import examples
+6. **docs/format-obsidian.md** — Personal knowledge vault; wikilinks, YAML frontmatter, Obsidian plugins, knowledge management workflows
+7. **docs/format-wiki.md** — Team documentation site; agent-crawlable structure, community pages, god node analysis, GitHub Pages hosting
+8. **docs/format-report.md** — Human-readable analysis; god nodes, surprising connections, communities, suggested questions, metrics
+
+**Key Decisions:**
+- **Consistent structure:** Each format guide follows: title, quick-start, what it produces, how to use, features, best for, examples, customization, size/limitations, cross-references
+- **Audience-specific:** HTML for visual explorers; JSON for developers; SVG for documentarians; Neo4j for analysts; Obsidian for knowledge workers; Wiki for teams; Report for everyone
+- **Practical examples:** Showed CLI commands, code samples (C#, JavaScript, Python, bash), workflow patterns
+- **Cross-linking:** All guides link to overview and related formats; overview table shows format names, outputs, use cases, interactivity levels
+- **Default formats:** Documented json, html, report as defaults; show multi-format combinations for different goals
+- **Format comparison:** Overview table and "Choosing Multiple Formats" section help users select the right export strategy
+
+**Rationale:**
+The CLI supports 7 distinct export formats serving different use cases. Users needed clear guidance on:
+- What each format produces
+- When to use each one
+- How to access and manipulate the output
+- Real-world workflows and integrations
+- Performance characteristics and limitations
+
+Documentation reduces user friction and enables full feature adoption.
+
+**Documentation Style:**
+- Concise (100–200 lines per guide)
+- Practical (CLI examples, code samples, real workflows)
+- Inclusive ("Quick Start" top of each, "See Also" linking structure)
+- User-centric (guides organized by use case, not just technical features)
+- Markdown with code blocks, tables, and inline formatting for GitHub/web presentation
+
 

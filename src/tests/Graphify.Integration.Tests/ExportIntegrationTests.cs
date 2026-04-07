@@ -155,4 +155,82 @@ public sealed class ExportIntegrationTests : IDisposable
 
         _output.WriteLine($"Created {jsonPath} ({info.Length} bytes)");
     }
+
+    [Fact(Timeout = 30000)]
+    public async Task ReportGeneration_ProducesMarkdownReport()
+    {
+        // Arrange
+        var graph = await BuildClusteredGraphAsync();
+        var analyzer = new Analyzer(new AnalyzerOptions
+        {
+            TopGodNodesCount = 10,
+            TopSurprisingConnections = 5,
+            MaxSuggestedQuestions = 10
+        });
+        var analysis = await analyzer.ExecuteAsync(graph);
+
+        // Act
+        var reportGenerator = new ReportGenerator();
+        var communityLabels = new Dictionary<int, string> { { 0, "Core" }, { 1, "Utilities" } };
+        var cohesionScores = new Dictionary<int, double> { { 0, 0.8 }, { 1, 0.6 } };
+        var report = reportGenerator.Generate(graph, analysis, communityLabels, cohesionScores, "TestProject");
+
+        // Assert
+        Assert.NotEmpty(report);
+        Assert.Contains("# Graph Report", report);
+        Assert.Contains("TestProject", report);
+        Assert.Contains("nodes", report, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("edges", report, StringComparison.OrdinalIgnoreCase);
+
+        _output.WriteLine($"Report length: {report.Length} characters");
+        _output.WriteLine("Report excerpt:");
+        _output.WriteLine(report[..Math.Min(500, report.Length)]);
+    }
+
+    [Fact(Timeout = 30000)]
+    public async Task SvgExport_ProducesValidSvg()
+    {
+        // Arrange
+        var graph = await BuildClusteredGraphAsync();
+        var svgPath = Path.Combine(_tempDir, "graph.svg");
+
+        // Act
+        var exporter = new SvgExporter();
+        await exporter.ExportAsync(graph, svgPath);
+
+        Assert.True(File.Exists(svgPath), "SVG file should exist after export");
+        var svg = await File.ReadAllTextAsync(svgPath);
+
+        _output.WriteLine($"SVG size: {svg.Length} chars");
+
+        // Assert: contains expected SVG structures
+        Assert.Contains("<?xml version", svg);
+        Assert.Contains("<svg", svg);
+        Assert.Contains("xmlns", svg);
+        Assert.Contains("<circle", svg); // nodes
+        Assert.Contains("<line", svg); // edges
+        Assert.True(svg.Length > 200, "SVG output should be substantial");
+    }
+
+    [Fact(Timeout = 30000)]
+    public async Task Neo4jExport_ProducesValidCypher()
+    {
+        // Arrange
+        var graph = await BuildClusteredGraphAsync();
+        var cypherPath = Path.Combine(_tempDir, "graph.cypher");
+
+        // Act
+        var exporter = new Neo4jExporter();
+        await exporter.ExportAsync(graph, cypherPath);
+
+        Assert.True(File.Exists(cypherPath), "Cypher file should exist after export");
+        var cypher = await File.ReadAllTextAsync(cypherPath);
+
+        _output.WriteLine($"Cypher size: {cypher.Length} chars");
+
+        // Assert: contains expected Cypher structures
+        Assert.Contains("CREATE (", cypher);
+        Assert.Contains("Knowledge Graph Export", cypher);
+        Assert.True(cypher.Length > 100, "Cypher output should be substantial");
+    }
 }

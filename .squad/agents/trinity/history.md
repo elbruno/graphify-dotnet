@@ -569,3 +569,53 @@
 
 **Validation**: `dotnet test src/tests/Graphify.Integration.Tests/` — 21/21 passed in ~3.4s.
 
+### 2026-04-07: Wire All Exporters + Sample Project
+
+**Context**: Completed wiring of all exporters into PipelineRunner and created a sample C# project for testing.
+
+**Task 1 — Wired all exporters into CLI:**
+- Extended PipelineRunner.cs Stage 6 export switch to support ALL 7 formats:
+  - `json` → JsonExporter → graph.json
+  - `html` → HtmlExporter (with community labels) → graph.html
+  - `svg` → SvgExporter → graph.svg (NEW)
+  - `neo4j` → Neo4jExporter → graph.cypher (NEW)
+  - `obsidian` → ObsidianExporter → obsidian/ subdirectory (NEW)
+  - `wiki` → WikiExporter → wiki/ subdirectory (NEW)
+  - `report` → ReportGenerator → GRAPH_REPORT.md (NEW)
+- Added helper methods to PipelineRunner:
+  - `BuildCommunityLabels()`: Creates labels based on most common node type per community (from Analyzer.cs pattern)
+  - `CalculateCohesionScores()`: Computes internal edge density per community
+  - `CalculateCohesion()`: Internal edge count / possible edge count formula
+- Updated Program.cs default format from `"json,html"` to `"json,html,report"`
+- Updated --format option description to list all 7 supported formats
+
+**Task 2 — Created samples/mini-library/:**
+- Created realistic mini C# library demonstrating repository pattern at `samples/mini-library/`
+- 6 files total:
+  1. `src/IRepository.cs`: Generic repository interface with CRUD methods
+  2. `src/User.cs`: Simple entity model with validation
+  3. `src/UserRepository.cs`: In-memory implementation with thread-safety
+  4. `src/UserService.cs`: Service layer with business logic
+  5. `src/ServiceCollectionExtensions.cs`: DI registration helpers
+  6. `README.md`: Documentation explaining the sample structure and expected graph output
+- All files include XML doc comments
+- Demonstrates interface/implementation, generic constraints, async/await, DI patterns
+- No .csproj needed (graphify analyzes source files directly)
+
+**Technical Decisions**:
+- Stored AnalysisResult in Stage 5 for use in Stage 6 (previously discarded)
+- HtmlExporter now receives community labels parameter (was passing null before)
+- Report generator needs project name — derived from input path basename
+- Directory-based exporters (obsidian, wiki) use subdirectories in output path
+- Neo4j exporter outputs `.cypher` extension (not `.neo4j`)
+
+**Build Verification**: `dotnet build src/Graphify.Cli/Graphify.Cli.csproj` — ✅ succeeded in 3.4s
+
+**Commit**: 6caf710 — "feat: wire all exporters into CLI + create sample project"
+
+**Impact**:
+- Users can now export to ANY format via `--format svg,neo4j,obsidian,wiki,report`
+- Report format is included by default, providing immediate analysis summary
+- Sample project gives new users a working example to test against
+- All exporters now actually accessible from CLI (previously only json/html worked)
+
