@@ -552,3 +552,113 @@ Added Spectre.Console-based interactive configuration wizard and styled config d
 - Config display is now visually structured with Spectre.Console tables and panels
 - `appsettings.local.json` provides a persistent, gitignored config layer
 - All 509 existing tests continue to pass
+
+---
+
+## Security Audit Report — graphify-dotnet v0.5.0
+
+**Author:** Seraph (Security Engineer)  
+**Date:** 2026-04-07  
+**Status:** Actionable (Phased Remediation)
+
+### Executive Summary
+
+graphify-dotnet demonstrates **solid security foundations** — it includes a dedicated `InputValidator` with SSRF protection, path traversal guards, and XSS sanitization. However, the audit identifies **14 findings** across 8 categories, including two High-severity issues: API keys written to plaintext files and `UnsafeRelaxedJsonEscaping` in the HTML exporter creating XSS risk. Most findings are Medium/Low severity and addressable with small to medium effort.
+
+See SECURITY_AUDIT.md in the repository root for full detailed findings and remediation plan.
+
+### Findings Summary
+
+| # | Severity | Category | File | Finding | Effort |
+|---|----------|----------|------|---------|--------|
+| 001 | High | Secrets Management | ConfigPersistence.cs | API key written to plaintext JSON | medium |
+| 002 | High | Export Format Security | HtmlExporter.cs | UnsafeRelaxedJsonEscaping enables XSS | small |
+| 003 | Medium | AI/LLM Security | ExtractionPrompts.cs | Prompt injection via malicious source files | medium |
+| 004 | Medium | Export Format Security | HtmlTemplate.cs | Unsanitized node data in JavaScript | small |
+| 005 | Medium | File System Security | FileDetector.cs | No symlink detection | small |
+| 006 | Medium | Input Validation | PipelineRunner.cs | Output directory not validated | small |
+| 007 | Medium | CI/CD Security | publish.yml | Expression injection in version | small |
+| 008 | Medium | Export Format Security | Neo4jExporter.cs | Cypher injection — quotes not escaped | small |
+| 009 | Low | Secrets Management | Program.cs | Error messages may leak config | trivial |
+| 010 | Low | .NET Patterns | ConfigPersistence.cs | Silent catch-all hides errors | trivial |
+| 011 | Low | File System Security | SemanticCache.cs | Cache dir default permissions | trivial |
+| 012 | Low | Input Validation | UrlIngester.cs | SSRF incomplete — 172.16/12 missing | small |
+| 013 | Info | CI/CD Security | publish.yml | Contradicts "not a package" | trivial |
+| 014 | Info | Dependency Supply Chain | Graphify.Sdk.csproj | Preview package dependency | trivial |
+
+### Phased Remediation Plan
+
+**Phase 1: Critical Path** — FINDING-002, FINDING-001, FINDING-004, FINDING-008  
+**Phase 2: Hardening** — FINDING-006, FINDING-005, FINDING-007, FINDING-012  
+**Phase 3: Polish** — FINDING-003, FINDING-009, FINDING-010, FINDING-011, FINDING-013, FINDING-014
+
+### Positive Security Patterns
+
+The codebase demonstrates strong security practices:
+- Dedicated Security module with `InputValidator`
+- SSRF protection with private IP range blocking
+- File size limits and DoS prevention
+- Secret masking in config display
+- Nullable reference types enabled project-wide
+- No `unsafe` code blocks
+
+---
+
+## Architecture Security Review — graphify-dotnet
+
+**Author:** Neo (Lead/Architect)  
+**Date:** 2026-04-07  
+**Status:** Accepted
+
+### Executive Summary
+
+graphify-dotnet is **architecturally sound** from a security standpoint. The system implements defense-in-depth across configuration management, input validation, and data export. Key strengths: explicit trust boundaries, layered configuration with secret isolation, provider-agnostic AI abstraction, and per-format output encoding.
+
+**Critical Issues Found:** 0  
+**Medium Concerns:** 2 (both manageable, both documented)  
+**Design Recommendations:** 3 (future-proofing)
+
+### Trust Boundary Map
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│                     UNTRUSTED INPUTS                            │
+│  (from external world)                                           │
+├─────────────────────────────────────────────────────────────────┤
+│ • CLI arguments (--provider, --endpoint, --api-key, paths)     │
+│ • Environment variables (GRAPHIFY__*)                           │
+│ • appsettings.local.json (user-edited, persisted by wizard)    │
+│ • Dotnet user-secrets (developer-set)                           │
+│ • Source code files (arbitrary contents: binaries, text)        │
+│ • File system metadata (paths, file names)                      │
+│ • AI provider responses (LLM outputs)                           │
+│ • Git tracked files list (git ls-files output)                 │
+└────────────────────────────────────────────────────────────────┘
+           │                │                │
+           ▼                ▼                ▼
+    ┌──────────────────────────────────────────────┐
+    │    GRAPHIFY PIPELINE (Controlled Zone)       │
+    │  - Input validation enforced at boundary     │
+    │  - Extraction via structured parsers (AST)   │
+    │  - Semantic extraction via API abstraction   │
+    └──────────────────────────────────────────────┘
+           │                │                │
+           ▼                ▼                ▼
+┌────────────────────────────────────────────────────────────────┐
+│                      TRUSTED OUTPUTS                            │
+│  (under our control)                                             │
+│ • JSON files (schema-validated, sanitized labels)              │
+│ • HTML files (XSS-escaped, safe encoder)                       │
+│ • Neo4j Cypher (Cypher-escaped, parameter-safe)               │
+│ • SVG files (XML-escaped entities)                            │
+│ • Cache files (integrity via file permissions)                 │
+└────────────────────────────────────────────────────────────────┘
+```
+
+### Key Architectural Strengths
+
+1. **Layered Configuration:** Five-layer priority ensures CLI overrides > secrets > env > config files > defaults
+2. **Provider-Agnostic AI:** IChatClient abstraction prevents vendor lock-in
+3. **Per-Format Output Encoding:** Each exporter (HTML, Neo4j, SVG) applies format-specific escaping
+4. **Input Validation at Boundary:** FileDetector, InputValidator, and schema validation gate untrusted data
+5. **No Unsafe Code:** Zero pointer manipulation or unsafe blocks in production code
