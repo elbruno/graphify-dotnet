@@ -429,4 +429,35 @@ Created 18 new tests for Trinity's interactive configuration wizard feature:
 - `JsonIgnoreCondition.WhenWritingNull` means null Provider is not serialized, but Load still round-trips correctly via empty Graphify section
 
 **Test run**: 527 tests passing (489 unit + 38 integration), 0 failures. 18 new tests added.
+### 2026-04-07: ConfigurationFactory CopilotSdk + Config Set Command Tests
+
+Added 31 new tests across two files for the `config set` interactive wizard and ConfigurationFactory CopilotSdk CLI override routing:
+
+**ConfigurationFactoryTests.cs** (7 new tests added to existing file):
+- `Build_CopilotSdkCliOptions_SetsModelIdCorrectly` — provider="copilotsdk", model="gpt-4o" → routes to `Graphify:CopilotSdk:ModelId`
+- `Build_CopilotSdkCliOptions_DoesNotSetAzureModel` — model must NOT bleed into `Graphify:AzureOpenAI:ModelId`
+- `Build_CopilotSdkCliOptions_IgnoresEndpoint` — endpoint silently dropped for CopilotSdk, no bleed to AzureOpenAI
+- `Build_CopilotSdkCanBindToGraphifyConfig` — full round-trip: CLI options → IConfiguration → GraphifyConfig binding
+- `Build_CopilotSdkCliOptions_ApiKeyDoesNotSetCopilotSdkKey` — stray API key doesn't create `CopilotSdk:ApiKey`
+- `Build_CopilotSdkCliOptions_DeploymentIsIgnored` — deployment is an Azure concept, CopilotSdk ignores it
+- Verified model routing for all three providers (Ollama → Ollama:ModelId, AzureOpenAI → AzureOpenAI:ModelId, CopilotSdk → CopilotSdk:ModelId)
+
+**ConfigSetCommandTests.cs** (24 new tests, new file):
+- Command tree tests: `config` and `config set` subcommand existence
+- Provider routing: Ollama secrets structure (default + custom endpoint/model)
+- Provider routing: Azure OpenAI secrets structure (all 4 required fields)
+- Provider routing: CopilotSdk only requires ModelId (no endpoint, no API key)
+- Invalid choice handling: choices outside 1-3 produce no secrets
+- Valid choice mapping: 1→ollama, 2→azureopenai, 3→copilotsdk
+- Default values: empty input falls back to Ollama localhost:11434, llama3.2, CopilotSdk gpt-4.1
+- Azure required field validation: empty endpoint/apikey/deployment/model rejected
+- Round-trip tests: CLI options → ConfigurationFactory → GraphifyConfig for all 3 providers
+
+**Key decisions**:
+- The `config set` command uses Console.ReadLine directly in Program.cs (no extracted handler class), so tests verify the routing logic and config binding rather than mocking console I/O
+- Ollama:Endpoint from appsettings.json persists in all builds — can't assert it's null when testing CopilotSdk endpoint isolation
+- Used `AddInMemoryCollection` to simulate what the wizard's user-secrets would produce
+- All tests use `[Trait("Category", "Cli")]` per project convention
+
+**Test run**: 507 unit + 38 integration = 545 total, 0 failures (31 new tests added).
 

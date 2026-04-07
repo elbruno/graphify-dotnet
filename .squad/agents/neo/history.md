@@ -10,7 +10,19 @@
 
 <!-- Append new learnings below. Each entry is something lasting about the project. -->
 
-- **2026-04-07 — Regression test suite created** at `src/tests/Graphify.Tests/Regression/`. 26 tests across 4 files covering all 3 fixed bugs plus edge cases:
+- **2026-04-07 — NuGet Publishing Plan Created**. Comprehensive plan documented in `.squad/decisions/inbox/neo-nuget-publish-plan.md` for publishing graphify-dotnet as a dotnet global tool on NuGet.org. Plan covers:
+  - **Phases:** 4 phases (metadata/assets, workflow, environment setup, documentation/validation)
+  - **Key decisions:** Single-target `net10.0` (not multi-target), OIDC trusted publishing (no API keys), symbol packages enabled
+  - **Manual steps:** 5 one-time setup tasks for Bruno (icon generation, GitHub environment, NuGet.org OIDC trust)
+  - **Workflow pattern:** Adapted from ElBruno.MarkItDotNet; triggers on GitHub `release` event + `workflow_dispatch`
+  - **Validation:** Dry-run strategy (Phase 4.4) before production release
+  - **Risk mitigation:** .NET 10 SDK availability, OIDC trust configuration, version management strategy
+  - **Success criteria:** Package published, installable via `dotnet tool install -g graphify-dotnet`, badges in README, no long-lived credentials
+  - **Open questions:** Auto-publish vs. manual (recommend manual), pre-release strategy, post-publish validation timing
+  - **Security:** Minimal permissions (id-token: write, contents: read), environment-specific secrets, OIDC eliminates key rotation burden
+  - **Post-publish:** Plan includes local install verification, NuGet.org metrics monitoring, future auto-publish possibility
+
+- **2026-04-07 — Regression test suite created**at `src/tests/Graphify.Tests/Regression/`. 26 tests across 4 files covering all 3 fixed bugs plus edge cases:
   - `SemanticCacheRegressionTests.cs` (6 tests): Deadlock prevention for ClearAsync — verifies SemaphoreSlim reentrance fix (SaveIndexCoreAsync pattern), concurrent operations, sequential clears, and load testing.
   - `InputValidatorRegressionTests.cs` (9 tests): SanitizeLabel control char stripping — verifies regex + char.IsControl fallback, mixed content preservation, null bytes, unicode handling, extended ASCII preservation, empty/long input graceful handling.
   - `TimeoutRegressionTests.cs` (2 tests): CI hang prevention — meta-test guardrail scans Regression namespace for missing Timeout attributes, plus root-cause verification showing SemaphoreSlim(1,1) double-acquire times out rather than deadlocks.

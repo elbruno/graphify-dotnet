@@ -255,4 +255,110 @@ public class ConfigurationFactoryTests : IDisposable
         Assert.Equal("bind-test-key", graphifyConfig.AzureOpenAI.ApiKey);
         Assert.Equal("bind-deploy", graphifyConfig.AzureOpenAI.DeploymentName);
     }
+
+    // ── CopilotSdk CLI override tests ──────────────────────────────────
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCliOptions_SetsModelIdCorrectly()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: null,
+            ApiKey: null,
+            Model: "gpt-4o",
+            Deployment: null);
+
+        var config = ConfigurationFactory.Build(cliOptions);
+
+        Assert.Equal("gpt-4o", config["Graphify:CopilotSdk:ModelId"]);
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCliOptions_DoesNotSetAzureModel()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: null,
+            ApiKey: null,
+            Model: "gpt-4o",
+            Deployment: null);
+
+        var config = ConfigurationFactory.Build(cliOptions);
+
+        // Model should NOT bleed into Azure OpenAI config
+        Assert.Null(config["Graphify:AzureOpenAI:ModelId"]);
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCliOptions_IgnoresEndpoint()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: "http://something",
+            ApiKey: null,
+            Model: null,
+            Deployment: null);
+
+        var config = ConfigurationFactory.Build(cliOptions);
+
+        // CopilotSdk has no endpoint config — the CLI endpoint must be silently dropped
+        Assert.Null(config["Graphify:CopilotSdk:Endpoint"]);
+        // Endpoint must NOT bleed into AzureOpenAI either
+        Assert.Null(config["Graphify:AzureOpenAI:Endpoint"]);
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCanBindToGraphifyConfig()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: null,
+            ApiKey: null,
+            Model: "claude-sonnet",
+            Deployment: null);
+
+        var configuration = ConfigurationFactory.Build(cliOptions);
+        var graphifyConfig = new GraphifyConfig();
+        configuration.GetSection("Graphify").Bind(graphifyConfig);
+
+        Assert.Equal("copilotsdk", graphifyConfig.Provider);
+        Assert.Equal("claude-sonnet", graphifyConfig.CopilotSdk.ModelId);
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCliOptions_ApiKeyDoesNotSetCopilotSdkKey()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: null,
+            ApiKey: "stray-api-key",
+            Model: null,
+            Deployment: null);
+
+        var config = ConfigurationFactory.Build(cliOptions);
+
+        Assert.Null(config["Graphify:CopilotSdk:ApiKey"]);
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public void Build_CopilotSdkCliOptions_DeploymentIsIgnored()
+    {
+        var cliOptions = new CliProviderOptions(
+            Provider: "copilotsdk",
+            Endpoint: null,
+            ApiKey: null,
+            Model: "gpt-4o",
+            Deployment: "my-deploy");
+
+        var config = ConfigurationFactory.Build(cliOptions);
+
+        Assert.Equal("gpt-4o", config["Graphify:CopilotSdk:ModelId"]);
+        Assert.Null(config["Graphify:AzureOpenAI:ModelId"]);
+    }
 }
