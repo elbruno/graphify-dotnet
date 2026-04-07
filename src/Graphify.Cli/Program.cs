@@ -29,8 +29,8 @@ static void AddPipelineOptions(Command cmd,
     };
     formatOpt = new Option<string>("--format", "-f")
     {
-        Description = "Export formats (comma-separated)",
-        DefaultValueFactory = _ => "json,html"
+        Description = "Export formats (comma-separated): json, html, svg, neo4j, obsidian, wiki, report",
+        DefaultValueFactory = _ => "json,html,report"
     };
     verboseOpt = new Option<bool>("--verbose", "-v")
     {

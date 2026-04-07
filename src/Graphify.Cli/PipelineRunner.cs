@@ -182,6 +182,10 @@ public sealed class PipelineRunner
             await WriteLineAsync($"      Suggested questions: {analysis.SuggestedQuestions.Count}");
             await WriteLineAsync();
 
+            // Prepare community labels and cohesion scores for report and exports
+            var communityLabels = BuildCommunityLabels(graph);
+            var cohesionScores = CalculateCohesionScores(graph);
+
             // Stage 6: Export
             await WriteLineAsync("[6/6] Exporting results...");
             Directory.CreateDirectory(outputDir);
@@ -190,24 +194,63 @@ public sealed class PipelineRunner
             {
                 try
                 {
-                    var outputPath = Path.Combine(outputDir, $"graph.{format}");
+                    var normalizedFormat = format.ToLowerInvariant();
 
-                    switch (format.ToLowerInvariant())
+                    switch (normalizedFormat)
                     {
                         case "json":
                             var jsonExporter = new JsonExporter();
-                            await jsonExporter.ExportAsync(graph, outputPath, cancellationToken);
-                            await WriteLineAsync($"      Exported JSON: {outputPath}");
+                            var jsonPath = Path.Combine(outputDir, "graph.json");
+                            await jsonExporter.ExportAsync(graph, jsonPath, cancellationToken);
+                            await WriteLineAsync($"      Exported JSON: {jsonPath}");
                             break;
 
                         case "html":
                             var htmlExporter = new HtmlExporter();
-                            await htmlExporter.ExportAsync(graph, outputPath, cancellationToken: cancellationToken);
-                            await WriteLineAsync($"      Exported HTML: {outputPath}");
+                            var htmlPath = Path.Combine(outputDir, "graph.html");
+                            await htmlExporter.ExportAsync(graph, htmlPath, communityLabels, cancellationToken);
+                            await WriteLineAsync($"      Exported HTML: {htmlPath}");
+                            break;
+
+                        case "svg":
+                            var svgExporter = new SvgExporter();
+                            var svgPath = Path.Combine(outputDir, "graph.svg");
+                            await svgExporter.ExportAsync(graph, svgPath, cancellationToken);
+                            await WriteLineAsync($"      Exported SVG: {svgPath}");
+                            break;
+
+                        case "neo4j":
+                            var neo4jExporter = new Neo4jExporter();
+                            var cypherPath = Path.Combine(outputDir, "graph.cypher");
+                            await neo4jExporter.ExportAsync(graph, cypherPath, cancellationToken);
+                            await WriteLineAsync($"      Exported Neo4j Cypher: {cypherPath}");
+                            break;
+
+                        case "obsidian":
+                            var obsidianExporter = new ObsidianExporter();
+                            var obsidianPath = Path.Combine(outputDir, "obsidian");
+                            await obsidianExporter.ExportAsync(graph, obsidianPath, cancellationToken);
+                            await WriteLineAsync($"      Exported Obsidian vault: {obsidianPath}/");
+                            break;
+
+                        case "wiki":
+                            var wikiExporter = new WikiExporter();
+                            var wikiPath = Path.Combine(outputDir, "wiki");
+                            await wikiExporter.ExportAsync(graph, wikiPath, cancellationToken);
+                            await WriteLineAsync($"      Exported Wiki: {wikiPath}/");
+                            break;
+
+                        case "report":
+                            var reportGenerator = new ReportGenerator();
+                            var projectName = Path.GetFileName(Path.GetFullPath(inputPath));
+                            var reportMarkdown = reportGenerator.Generate(graph, analysis, communityLabels, cohesionScores, projectName);
+                            var reportPath = Path.Combine(outputDir, "GRAPH_REPORT.md");
+                            await File.WriteAllTextAsync(reportPath, reportMarkdown, cancellationToken);
+                            await WriteLineAsync($"      Exported Report: {reportPath}");
                             break;
 
                         default:
-                            await WriteLineAsync($"      Warning: Unknown format '{format}' - skipped");
+                            await WriteLineAsync($"      Warning: Unknown format '{normalizedFormat}' - skipped");
                             break;
                     }
                 }
@@ -262,5 +305,63 @@ public sealed class PipelineRunner
     private async Task WriteLineAsync(string message = "")
     {
         await _output.WriteLineAsync(message);
+    }
+
+    private static Dictionary<int, string> BuildCommunityLabels(KnowledgeGraph graph)
+    {
+        var result = new Dictionary<int, string>();
+        var communities = graph.GetNodes()
+            .Where(n => n.Community.HasValue)
+            .GroupBy(n => n.Community!.Value)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        foreach (var (commId, nodes) in communities)
+        {
+            // Use the most common node type as label
+            var commonType = nodes
+                .GroupBy(n => n.Type)
+                .OrderByDescending(g => g.Count())
+                .FirstOrDefault()?.Key ?? "Mixed";
+
+            result[commId] = $"{commonType} (Community {commId})";
+        }
+
+        return result;
+    }
+
+    private static Dictionary<int, double> CalculateCohesionScores(KnowledgeGraph graph)
+    {
+        var communities = graph.GetNodes()
+            .Where(n => n.Community.HasValue)
+            .GroupBy(n => n.Community!.Value)
+            .ToDictionary(g => g.Key, g => g.Select(n => n.Id).ToList());
+
+        var result = new Dictionary<int, double>();
+        foreach (var (commId, nodeIds) in communities)
+        {
+            result[commId] = CalculateCohesion(graph, nodeIds);
+        }
+
+        return result;
+    }
+
+    private static double CalculateCohesion(KnowledgeGraph graph, List<string> nodeIds)
+    {
+        if (nodeIds.Count < 2) return 0.0;
+
+        // Count internal edges (edges within community)
+        var internalEdges = 0;
+        var nodeSet = nodeIds.ToHashSet();
+
+        foreach (var nodeId in nodeIds)
+        {
+            var edges = graph.GetEdges(nodeId);
+            internalEdges += edges.Count(e =>
+                nodeSet.Contains(e.Source.Id) && nodeSet.Contains(e.Target.Id));
+        }
+
+        // Cohesion = internal edges / possible edges
+        var possibleEdges = nodeIds.Count * (nodeIds.Count - 1);
+        return possibleEdges > 0 ? (double)internalEdges / possibleEdges : 0.0;
     }
 }
