@@ -9,13 +9,47 @@
       "Graphify.Integration.Tests/1.0.0": {
         "dependencies": {
           "Graphify": "1.0.0",
-          "Graphify.Cli": "1.0.0",
           "Graphify.Sdk": "1.0.0",
           "Microsoft.NET.Test.Sdk": "17.14.1",
-          "xunit": "2.9.3"
+          "graphify-dotnet": "0.1.0",
+          "xunit": "2.9.3",
+          "Graphify.Cli": "0.1.0.0"
         },
         "runtime": {
           "Graphify.Integration.Tests.dll": {}
+        }
+      },
+      "Azure.AI.OpenAI/2.1.0": {
+        "dependencies": {
+          "Azure.Core": "1.44.1",
+          "OpenAI": "2.9.1"
+        },
+        "runtime": {
+          "lib/netstandard2.0/Azure.AI.OpenAI.dll": {
+            "assemblyVersion": "2.1.0.0",
+            "fileVersion": "2.100.24.60605"
+          }
+        }
+      },
+      "Azure.Core/1.44.1": {
+        "dependencies": {
+          "Microsoft.Bcl.AsyncInterfaces": "6.0.0",
+          "System.ClientModel": "1.9.0",
+          "System.Memory.Data": "10.0.1"
+        },
+        "runtime": {
+          "lib/net6.0/Azure.Core.dll": {
+            "assemblyVersion": "1.44.1.0",
+            "fileVersion": "1.4400.124.50905"
+          }
+        }
+      },
+      "Microsoft.Bcl.AsyncInterfaces/6.0.0": {
+        "runtime": {
+          "lib/netstandard2.1/Microsoft.Bcl.AsyncInterfaces.dll": {
+            "assemblyVersion": "6.0.0.0",
+            "fileVersion": "6.0.21.52210"
+          }
         }
       },
       "Microsoft.CodeCoverage/17.14.1": {
@@ -49,6 +83,18 @@
           }
         }
       },
+      "Microsoft.Extensions.AI.OpenAI/10.4.1": {
+        "dependencies": {
+          "Microsoft.Extensions.AI.Abstractions": "10.4.1",
+          "OpenAI": "2.9.1"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.AI.OpenAI.dll": {
+            "assemblyVersion": "10.4.0.0",
+            "fileVersion": "10.400.126.16803"
+          }
+        }
+      },
       "Microsoft.Extensions.Caching.Abstractions/10.0.4": {
         "dependencies": {
           "Microsoft.Extensions.Primitives": "10.0.4"
@@ -60,11 +106,60 @@
           }
         }
       },
+      "Microsoft.Extensions.Configuration.Abstractions/10.0.2": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.4"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Configuration.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.225.61305"
+          }
+        }
+      },
       "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.4": {
         "runtime": {
           "lib/net10.0/Microsoft.Extensions.DependencyInjection.Abstractions.dll": {
             "assemblyVersion": "10.0.0.0",
             "fileVersion": "10.0.426.12010"
+          }
+        }
+      },
+      "Microsoft.Extensions.Diagnostics.Abstractions/10.0.2": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.4",
+          "Microsoft.Extensions.Options": "10.0.2"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Diagnostics.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.225.61305"
+          }
+        }
+      },
+      "Microsoft.Extensions.FileProviders.Abstractions/10.0.2": {
+        "dependencies": {
+          "Microsoft.Extensions.Primitives": "10.0.4"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.FileProviders.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.225.61305"
+          }
+        }
+      },
+      "Microsoft.Extensions.Hosting.Abstractions/10.0.2": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.2",
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.4",
+          "Microsoft.Extensions.Diagnostics.Abstractions": "10.0.2",
+          "Microsoft.Extensions.FileProviders.Abstractions": "10.0.2",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.4"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Hosting.Abstractions.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.225.61305"
           }
         }
       },
@@ -76,6 +171,18 @@
           "lib/net10.0/Microsoft.Extensions.Logging.Abstractions.dll": {
             "assemblyVersion": "10.0.0.0",
             "fileVersion": "10.0.426.12010"
+          }
+        }
+      },
+      "Microsoft.Extensions.Options/10.0.2": {
+        "dependencies": {
+          "Microsoft.Extensions.DependencyInjection.Abstractions": "10.0.4",
+          "Microsoft.Extensions.Primitives": "10.0.4"
+        },
+        "runtime": {
+          "lib/net10.0/Microsoft.Extensions.Options.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.225.61305"
           }
         }
       },
@@ -344,11 +451,47 @@
           }
         }
       },
+      "OllamaSharp/5.4.25": {
+        "dependencies": {
+          "Microsoft.Extensions.AI.Abstractions": "10.4.1"
+        },
+        "runtime": {
+          "lib/net10.0/OllamaSharp.dll": {
+            "assemblyVersion": "5.4.25.0",
+            "fileVersion": "5.4.25.0"
+          }
+        }
+      },
+      "OpenAI/2.9.1": {
+        "dependencies": {
+          "System.ClientModel": "1.9.0"
+        },
+        "runtime": {
+          "lib/net10.0/OpenAI.dll": {
+            "assemblyVersion": "2.9.1.0",
+            "fileVersion": "2.9.1.0"
+          }
+        }
+      },
       "QuikGraph/2.5.0": {
         "runtime": {
           "lib/netstandard2.0/QuikGraph.dll": {
             "assemblyVersion": "2.5.0.0",
             "fileVersion": "2.5.0.0"
+          }
+        }
+      },
+      "System.ClientModel/1.9.0": {
+        "dependencies": {
+          "Microsoft.Extensions.Configuration.Abstractions": "10.0.2",
+          "Microsoft.Extensions.Hosting.Abstractions": "10.0.2",
+          "Microsoft.Extensions.Logging.Abstractions": "10.0.4",
+          "System.Memory.Data": "10.0.1"
+        },
+        "runtime": {
+          "lib/net10.0/System.ClientModel.dll": {
+            "assemblyVersion": "1.9.0.0",
+            "fileVersion": "1.900.26.7706"
           }
         }
       },
@@ -398,6 +541,14 @@
           },
           "lib/net8.0/zh-Hant/System.CommandLine.resources.dll": {
             "locale": "zh-Hant"
+          }
+        }
+      },
+      "System.Memory.Data/10.0.1": {
+        "runtime": {
+          "lib/net10.0/System.Memory.Data.dll": {
+            "assemblyVersion": "10.0.0.1",
+            "fileVersion": "10.0.125.57005"
           }
         }
       },
@@ -480,27 +631,38 @@
           }
         }
       },
-      "Graphify.Cli/1.0.0": {
+      "graphify-dotnet/0.1.0": {
         "dependencies": {
           "Graphify": "1.0.0",
           "System.CommandLine": "2.0.5"
         },
         "runtime": {
           "Graphify.Cli.dll": {
-            "assemblyVersion": "1.0.0.0",
-            "fileVersion": "1.0.0.0"
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
           }
         }
       },
       "Graphify.Sdk/1.0.0": {
         "dependencies": {
+          "Azure.AI.OpenAI": "2.1.0",
           "Graphify": "1.0.0",
-          "Microsoft.Extensions.AI": "10.4.1"
+          "Microsoft.Extensions.AI": "10.4.1",
+          "Microsoft.Extensions.AI.OpenAI": "10.4.1",
+          "OllamaSharp": "5.4.25"
         },
         "runtime": {
           "Graphify.Sdk.dll": {
             "assemblyVersion": "1.0.0.0",
             "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "Graphify.Cli/0.1.0.0": {
+        "runtime": {
+          "Graphify.Cli.dll": {
+            "assemblyVersion": "0.1.0.0",
+            "fileVersion": "0.1.0.0"
           }
         }
       }
@@ -511,6 +673,27 @@
       "type": "project",
       "serviceable": false,
       "sha512": ""
+    },
+    "Azure.AI.OpenAI/2.1.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-doixr3tcsIcdzbzF9NxKt+6U0NKj6aPeOCPYONPsWjyf3gxVndVJAdjPcVdqeR/3vcRHXRgGnGlv+iXx5jMA4g==",
+      "path": "azure.ai.openai/2.1.0",
+      "hashPath": "azure.ai.openai.2.1.0.nupkg.sha512"
+    },
+    "Azure.Core/1.44.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-YyznXLQZCregzHvioip07/BkzjuWNXogJEVz9T5W6TwjNr17ax41YGzYMptlo2G10oLCuVPoyva62y0SIRDixg==",
+      "path": "azure.core/1.44.1",
+      "hashPath": "azure.core.1.44.1.nupkg.sha512"
+    },
+    "Microsoft.Bcl.AsyncInterfaces/6.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-UcSjPsst+DfAdJGVDsu346FX0ci0ah+lw3WRtn18NUwEqRt70HaOQ7lI72vy3+1LxtqI3T5GWwV39rQSrCzAeg==",
+      "path": "microsoft.bcl.asyncinterfaces/6.0.0",
+      "hashPath": "microsoft.bcl.asyncinterfaces.6.0.0.nupkg.sha512"
     },
     "Microsoft.CodeCoverage/17.14.1": {
       "type": "package",
@@ -533,12 +716,26 @@
       "path": "microsoft.extensions.ai.abstractions/10.4.1",
       "hashPath": "microsoft.extensions.ai.abstractions.10.4.1.nupkg.sha512"
     },
+    "Microsoft.Extensions.AI.OpenAI/10.4.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-C+xo+ds4PxSzTEywLcM0hbJJboEuLT5na/Q49rMNi3Y0hsoBuMXIZCvWXOyvNXunvngOwZYvkicEod/g8Gll6w==",
+      "path": "microsoft.extensions.ai.openai/10.4.1",
+      "hashPath": "microsoft.extensions.ai.openai.10.4.1.nupkg.sha512"
+    },
     "Microsoft.Extensions.Caching.Abstractions/10.0.4": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-uDRooaV6N3WZ0kdlNPMB68/MdGn/in1Fs7Db7DnIm85RBTPy4P321WO+daAImiYpH5dekjNggDqy1N44WaIlMA==",
       "path": "microsoft.extensions.caching.abstractions/10.0.4",
       "hashPath": "microsoft.extensions.caching.abstractions.10.0.4.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Configuration.Abstractions/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-KC5PslaTDnTuTvyke0KYAVBYdZ7IVTsU3JhHe69BpEbHLcj1YThP3bIGtZNOkZfast2AuLnul5lk4rZKxAdUGQ==",
+      "path": "microsoft.extensions.configuration.abstractions/10.0.2",
+      "hashPath": "microsoft.extensions.configuration.abstractions.10.0.2.nupkg.sha512"
     },
     "Microsoft.Extensions.DependencyInjection.Abstractions/10.0.4": {
       "type": "package",
@@ -547,12 +744,40 @@
       "path": "microsoft.extensions.dependencyinjection.abstractions/10.0.4",
       "hashPath": "microsoft.extensions.dependencyinjection.abstractions.10.0.4.nupkg.sha512"
     },
+    "Microsoft.Extensions.Diagnostics.Abstractions/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-GaiaeKUuLuUbRPkUokndDuzonhO6dk4lcfGflHsCeXiJ5JrZxcyks1KuG6eB9pON16x/+9uWfa4w9g3oP8AYvQ==",
+      "path": "microsoft.extensions.diagnostics.abstractions/10.0.2",
+      "hashPath": "microsoft.extensions.diagnostics.abstractions.10.0.2.nupkg.sha512"
+    },
+    "Microsoft.Extensions.FileProviders.Abstractions/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-+r/eJ+slW/EmwWmH3En4gzRg1k6+yTqexoHBrMuz5fxsIKJA8MDiSGepjw/ko3XyNqg+w3dxQe+huoVXs5XDJw==",
+      "path": "microsoft.extensions.fileproviders.abstractions/10.0.2",
+      "hashPath": "microsoft.extensions.fileproviders.abstractions.10.0.2.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Hosting.Abstractions/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CeAAPVOtI/wtBcHOwq6Pw3VPdGi+pNaGHZj6vfXX/5zr8beO9SyL7IOCSQ70BauFTAFS0QF7f6zu2A6hC8D6nw==",
+      "path": "microsoft.extensions.hosting.abstractions/10.0.2",
+      "hashPath": "microsoft.extensions.hosting.abstractions.10.0.2.nupkg.sha512"
+    },
     "Microsoft.Extensions.Logging.Abstractions/10.0.4": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-PDMMt7fvBatv6hcxxyJtXIzSwn7Dy00W6I2vDAOTYrQqNM2dF5A2L9n0uMzdPz2IPoNZWkAmYjoOCEdDLq0i4w==",
       "path": "microsoft.extensions.logging.abstractions/10.0.4",
       "hashPath": "microsoft.extensions.logging.abstractions.10.0.4.nupkg.sha512"
+    },
+    "Microsoft.Extensions.Options/10.0.2": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1De2LJjmxdqopI5AYC5dIhoZQ79AR5ayywxNF1rXrXFtKQfbQOV9+n/IsZBa7qWlr0MqoGpW8+OY2v/57udZOA==",
+      "path": "microsoft.extensions.options/10.0.2",
+      "hashPath": "microsoft.extensions.options.10.0.2.nupkg.sha512"
     },
     "Microsoft.Extensions.Primitives/10.0.4": {
       "type": "package",
@@ -589,6 +814,20 @@
       "path": "newtonsoft.json/13.0.3",
       "hashPath": "newtonsoft.json.13.0.3.nupkg.sha512"
     },
+    "OllamaSharp/5.4.25": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-EqkPM1gbkE+RbHgKUMzp4lYjpFymWUIgJntx3u4uDXAfAIFUXJ0MGklNFCi/PdCaxNAPRpcf205yx+g6jLLhZg==",
+      "path": "ollamasharp/5.4.25",
+      "hashPath": "ollamasharp.5.4.25.nupkg.sha512"
+    },
+    "OpenAI/2.9.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-KPTFYEt1EhrPeIZXGBE+DlutFEpMo/RspqSdUJ3p6pMqsw3NeGJcIja/K0He1j9KyRq8ASfzBgp2biWbNUGnFA==",
+      "path": "openai/2.9.1",
+      "hashPath": "openai.2.9.1.nupkg.sha512"
+    },
     "QuikGraph/2.5.0": {
       "type": "package",
       "serviceable": true,
@@ -596,12 +835,26 @@
       "path": "quikgraph/2.5.0",
       "hashPath": "quikgraph.2.5.0.nupkg.sha512"
     },
+    "System.ClientModel/1.9.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-1wdwKtMMMEFEYsxJmtrOd3G+7zVOVO3MlVZAsbKv9H0PnIx6J27fYAarMn0eQS0vKJPQL018DOb7YRK1O97p0A==",
+      "path": "system.clientmodel/1.9.0",
+      "hashPath": "system.clientmodel.1.9.0.nupkg.sha512"
+    },
     "System.CommandLine/2.0.5": {
       "type": "package",
       "serviceable": true,
       "sha512": "sha512-2XtWAPk1G6arpe3OCFNrYYuf6iIboznxs2elJSGgd8e0euou7LfGYFon6hBEfDWNtOLr0M3+oUVgy1a5EGa41A==",
       "path": "system.commandline/2.0.5",
       "hashPath": "system.commandline.2.0.5.nupkg.sha512"
+    },
+    "System.Memory.Data/10.0.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-BZC4mhdL569AXV56ep9YO6ShjhxFXGP7SwVX0Bc/e0dJPWnS6aBEXZJXqh64RVx8HquqWHkJUINBydLRQ1yq0g==",
+      "path": "system.memory.data/10.0.1",
+      "hashPath": "system.memory.data.10.0.1.nupkg.sha512"
     },
     "System.Numerics.Tensors/10.0.4": {
       "type": "package",
@@ -664,13 +917,18 @@
       "serviceable": false,
       "sha512": ""
     },
-    "Graphify.Cli/1.0.0": {
+    "graphify-dotnet/0.1.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""
     },
     "Graphify.Sdk/1.0.0": {
       "type": "project",
+      "serviceable": false,
+      "sha512": ""
+    },
+    "Graphify.Cli/0.1.0.0": {
+      "type": "reference",
       "serviceable": false,
       "sha512": ""
     }

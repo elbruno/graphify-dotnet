@@ -515,3 +515,57 @@
 - Benchmark provides quantitative measurement of token reduction
 - Foundation for future query/explain/analyze commands
 
+### 2026-04-07: dotnet tool Packaging + Watch Mode (Features 1 & 4)
+
+**Context**: Made Graphify.Cli installable as a global .NET tool and added incremental watch mode.
+
+**Feature 1 — dotnet tool packaging**:
+- Added `PackAsTool`, `ToolCommandName(graphify)`, `PackageId(graphify-dotnet)` to Graphify.Cli.csproj
+- Added full NuGet metadata: Version 0.1.0, Description, Authors, MIT license, README, repository URLs
+- Included `README.md` as PackageReadmeFile via `<None Include>` item
+- Now installable via `dotnet tool install --global graphify-dotnet`
+
+**Feature 4 — Watch mode**:
+- Created `src/Graphify/Pipeline/WatchMode.cs` in the core library
+- Uses `FileSystemWatcher` with debounce (500ms) to batch rapid file changes
+- SHA256 cache check via `SemanticCache.IsChangedAsync` to skip unchanged content
+- Incremental pipeline: re-extracts only changed files, merges into existing graph via `KnowledgeGraph.MergeGraph()`, re-clusters, re-exports
+- Filters out bin/obj/hidden directories from watch events
+- CLI `watch` command: runs full pipeline first, then enters watch loop with Ctrl+C cancellation
+- Separated initial pipeline run into CLI layer (PipelineRunner lives in Graphify.Cli, not core) to avoid circular dependency
+
+**Technical decisions**:
+- WatchMode lives in core library (`Graphify.Pipeline`) so it could be reused by SDK/MCP, but delegates initial pipeline run to caller (avoids referencing Graphify.Cli from Graphify)
+- Uses `ConcurrentDictionary` for pending changes + `SemaphoreSlim` for process lock — safe for concurrent FileSystemWatcher events
+- Option parsing extracted to local function `ParseRunOptions()` shared by `run` and `watch` commands
+
+**Validation**: `dotnet build graphify-dotnet.slnx` succeeded, 203/203 tests pass.
+
+### 2026-04-07: End-to-End Integration Tests
+
+**Context**: Added comprehensive E2E integration tests exercising the full pipeline from code input to graph output.
+
+**What I Built** (21 tests across 5 test classes + 1 helper):
+
+1. **PipelineIntegrationTests.cs** (5 tests): FileDetection→GraphBuild E2E, full pipeline with mock extractor through ClusterEngine and Analyzer, empty directory produces empty graph, nested directories found, cancellation respected.
+
+2. **ExportIntegrationTests.cs** (4 tests): JSON export→reimport round-trip preserving node/edge counts, HTML export with vis.js structure validation, all 6 export formats (json/html/svg/neo4j/obsidian/wiki) produce non-empty output, export to non-existent directory auto-creates it.
+
+3. **CacheIntegrationTests.cs** (3 tests): Save→reload preserves entries across SemanticCache instances, SHA256 detects file content changes, clear→reload yields empty cache.
+
+4. **CliIntegrationTests.cs** (4 tests): --help prints usage, run command with sample files succeeds, unknown command returns error, watch command starts and cancels cleanly.
+
+5. **WatchModeIntegrationTests.cs** (4 tests): FileSystemWatcher detects new file creation, detects file modification, debounce event counting, non-code file extensions ignored by FileDetector.
+
+6. **Helpers/TestGraphFactory.cs**: Shared factory for building small graphs, clusterable graphs, and mock ExtractionResults.
+
+**Technical Decisions**:
+- All tests use `[Fact(Timeout = 30000)]` (30s max) and `[Trait("Category", "Integration")]`
+- Temp directories via `Path.GetTempPath()` + GUID, cleaned up in `Dispose()`
+- CLI tests invoke a local `InvokeCliAsync` helper that mirrors `Program.cs` arg parsing (top-level statements can't be invoked directly as a method)
+- HtmlExporter requires explicit `cancellationToken:` named arg to disambiguate overloads
+- Watch mode tests use raw `FileSystemWatcher` to verify event detection independently of `WatchMode` class
+- Pre-existing build error in Graphify.Tests (SemanticExtractorTests.FakeChatClient) is unrelated — integration test project builds and runs cleanly
+
+**Validation**: `dotnet test src/tests/Graphify.Integration.Tests/` — 21/21 passed in ~3.4s.
+

@@ -207,6 +207,83 @@ These use string IDs for node references because they represent raw extraction o
 - Validation logic matches Python implementation ensuring schema compatibility
 - Non-throwing validation enables better error reporting and batch validation
 
+### Decision: Multi-Provider IChatClient Architecture (Features 2 & 3)
+
+**Author:** Morpheus (SDK Dev)
+**Date:** 2026-04-07
+**Status:** Implemented
+
+#### Context
+
+Graphify.Sdk had a single provider stub (GitHub Models) that threw `NotImplementedException`. The short-term roadmap called for Azure OpenAI and Ollama/local model support, both using the `IChatClient` abstraction from Microsoft.Extensions.AI.
+
+#### Decision
+
+Implemented three provider factories behind a unified `ChatClientFactory`:
+
+| Provider | Package | Pattern |
+|---|---|---|
+| GitHub Models | `OpenAI` (via M.E.AI.OpenAI) | `OpenAIClient` with custom endpoint → `.AsIChatClient()` |
+| Azure OpenAI | `Azure.AI.OpenAI` 2.* | `AzureOpenAIClient` → `GetChatClient(deployment)` → `.AsIChatClient()` |
+| Ollama | `OllamaSharp` 5.* | `OllamaApiClient` implements `IChatClient` natively |
+
+##### Unified Entry Point
+
+```csharp
+ChatClientFactory.Create(new AiProviderOptions(AiProvider.Ollama, ModelId: "phi3"));
+```
+
+Dispatches to the correct factory. Required fields are validated per provider at creation time.
+
+##### Why OllamaSharp (not Microsoft.Extensions.AI.Ollama)
+
+Microsoft.Extensions.AI.Ollama was deprecated in favour of OllamaSharp, which natively implements `IChatClient`. OllamaSharp is the recommended client per the .NET AI ecosystem docs.
+
+#### Impact
+
+- Users can now target Azure OpenAI, GitHub Models, or local Ollama with zero code changes beyond config
+- `CopilotExtractor` and any future pipeline stage can accept any `IChatClient` from this factory
+- All 203 existing tests continue to pass
+- Trinity can wire `ChatClientFactory` into the CLI when ready
+
+#### Open Questions
+
+1. Should we add `DefaultAzureCredential` support for Azure OpenAI (Entra ID / managed identity)?
+2. Should `ChatClientFactory` live in DI as a registered service, or stay as a static factory?
+
+### Decision: dotnet tool Packaging + Watch Mode Architecture
+
+**Author:** Trinity (Core Developer)
+**Date:** 2026-04-07
+**Status:** Implemented
+
+#### Context
+
+Two features needed for the short-term roadmap:
+1. Make the CLI installable as `dotnet tool install --global graphify-dotnet`
+2. Add incremental watch mode that monitors files and re-processes only changes
+
+#### Decision
+
+##### Feature 1: dotnet tool packaging
+Added full NuGet tool metadata to `Graphify.Cli.csproj`:
+- `PackAsTool=true`, `ToolCommandName=graphify`, `PackageId=graphify-dotnet`
+- Version 0.1.0, MIT license, Bruno Capuano as author
+- README.md included as package readme
+
+##### Feature 4: Watch mode architecture
+- `WatchMode` class lives in **core library** (`Graphify.Pipeline`), not CLI
+- Accepts a pre-built `KnowledgeGraph` via `SetInitialGraph()` — the initial pipeline run is caller's responsibility
+- This avoids circular dependency (CLI references Core, not vice versa) while keeping WatchMode reusable by SDK/MCP
+- Uses `FileSystemWatcher` + 500ms debounce + SHA256 content check
+- Incremental: extract changed → merge into graph → re-cluster → re-export
+
+#### Impact
+
+- CLI is now packageable as a global dotnet tool
+- Watch mode enables dev-loop usage (edit code → see graph update)
+- WatchMode is reusable outside CLI (e.g., MCP server could use it)
+
 ## Governance
 
 - All meaningful changes require team consensus

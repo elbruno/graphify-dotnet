@@ -548,10 +548,10 @@
     "C:\\Program Files (x86)\\Microsoft Visual Studio\\Shared\\NuGetPackages": {}
   },
   "project": {
-    "version": "1.0.0",
+    "version": "0.1.0",
     "restore": {
       "projectUniqueName": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\Graphify.Cli.csproj",
-      "projectName": "Graphify.Cli",
+      "projectName": "graphify-dotnet",
       "projectPath": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\Graphify.Cli.csproj",
       "packagesPath": "C:\\Users\\brunocapuano\\.nuget\\packages\\",
       "outputPath": "C:\\src\\graphify-dotnet\\src\\Graphify.Cli\\obj\\",

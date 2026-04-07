@@ -15,6 +15,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\Graphify\Graphify.csproj" />
+    <ProjectReference Include="..\..\Graphify.Sdk\Graphify.Sdk.csproj" />
   </ItemGroup>
 
 </Project>
