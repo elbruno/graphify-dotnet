@@ -36,7 +36,11 @@ public sealed class CopilotChatClient : IChatClient, IAsyncDisposable
         var model = options?.ModelId ?? _modelId;
 
         var session = await _copilotClient.CreateSessionAsync(
-            new SessionConfig { Model = model },
+            new SessionConfig
+            {
+                Model = model,
+                OnPermissionRequest = PermissionHandler.ApproveAll
+            },
             cancellationToken);
 
         // Build the prompt from messages
