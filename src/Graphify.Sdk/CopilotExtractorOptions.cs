@@ -1,28 +1,27 @@
 namespace Graphify.Sdk;
 
 /// <summary>
-/// Configuration options for CopilotExtractor using GitHub Models API.
+/// Configuration options for CopilotExtractor.
 /// </summary>
 public class CopilotExtractorOptions
 {
     /// <summary>
-    /// GitHub API token or PAT for authentication.
-    /// Required for accessing GitHub Models API.
+    /// API key for authentication.
+    /// Required for accessing AI provider APIs.
     /// </summary>
     public string? ApiKey { get; set; }
 
     /// <summary>
     /// Model ID to use for extraction.
-    /// Examples: "gpt-4o", "gpt-4o-mini", "claude-3.5-sonnet"
+    /// Examples: "gpt-4o", "gpt-4o-mini", "llama3.2"
     /// Default: "gpt-4o"
     /// </summary>
     public string ModelId { get; set; } = "gpt-4o";
 
     /// <summary>
-    /// GitHub Models API endpoint.
-    /// Default: https://models.inference.ai.azure.com
+    /// AI provider endpoint URL.
     /// </summary>
-    public string Endpoint { get; set; } = "https://models.inference.ai.azure.com";
+    public string Endpoint { get; set; } = "";
 
     /// <summary>
     /// Maximum tokens to generate in the response.

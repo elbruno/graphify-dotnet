@@ -17,7 +17,7 @@ public sealed class CopilotExtractorOptionsTests
 
         Assert.Null(options.ApiKey);
         Assert.Equal("gpt-4o", options.ModelId);
-        Assert.Equal("https://models.inference.ai.azure.com", options.Endpoint);
+        Assert.Equal("", options.Endpoint);
         Assert.Equal(4096, options.MaxTokens);
         Assert.Equal(0.1f, options.Temperature);
         Assert.True(options.ExtractFromCode);

@@ -8,8 +8,7 @@ namespace Graphify.Sdk;
 
 /// <summary>
 /// Extracts high-level semantic concepts, design patterns, and relationships from files
-/// using GitHub Copilot/GitHub Models API via Microsoft.Extensions.AI IChatClient.
-/// This is an alternative to SemanticExtractor that specifically targets GitHub's AI backends.
+/// using AI providers via Microsoft.Extensions.AI IChatClient.
 /// </summary>
 public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
 {
@@ -19,25 +18,12 @@ public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
     /// <summary>
     /// Creates a new CopilotExtractor with a pre-configured IChatClient.
     /// </summary>
-    /// <param name="chatClient">IChatClient configured for GitHub Models API.</param>
+    /// <param name="chatClient">IChatClient configured for an AI provider.</param>
     /// <param name="options">Configuration options. If null, uses defaults.</param>
     public CopilotExtractor(IChatClient? chatClient, CopilotExtractorOptions? options = null)
     {
         _chatClient = chatClient;
         _options = options ?? new CopilotExtractorOptions();
-    }
-
-    /// <summary>
-    /// Creates a new CopilotExtractor and configures the GitHub Models client automatically.
-    /// </summary>
-    /// <param name="options">Configuration options including API key and endpoint.</param>
-    /// <returns>A configured CopilotExtractor instance.</returns>
-    public static CopilotExtractor Create(CopilotExtractorOptions options)
-    {
-        ArgumentNullException.ThrowIfNull(options);
-        
-        var chatClient = GitHubModelsClientFactory.Create(options);
-        return new CopilotExtractor(chatClient, options);
     }
 
     public async Task<ExtractionResult> ExecuteAsync(DetectedFile input, CancellationToken cancellationToken = default)
@@ -103,7 +89,7 @@ public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
             ModelId = _options.ModelId
         };
 
-        // Call the LLM via GitHub Models API
+        // Call the LLM via AI provider
         var response = await _chatClient!.GetResponseAsync(messages, options: chatOptions, cancellationToken: cancellationToken);
 
         // Parse the JSON response

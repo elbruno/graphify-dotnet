@@ -90,7 +90,7 @@ The .NET AI landscape has matured rapidly:
 
 #### 3.2 Azure OpenAI Support
 
-- **Description:** Add IChatClient configuration for Azure OpenAI endpoints alongside the existing GitHub Models API support.
+- **Description:** Add IChatClient configuration for Azure OpenAI endpoints alongside the existing AI provider support.
 - **Rationale:** Enterprise users often have Azure OpenAI deployments with managed access, private endpoints, and compliance guarantees. This is table-stakes for enterprise adoption.
 - **How:** Use `Microsoft.Extensions.AI.OpenAI` with Azure OpenAI endpoint configuration. The `IChatClient` abstraction means this is mostly configuration, not new extraction logic.
 - **Difficulty:** Easy

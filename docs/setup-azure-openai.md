@@ -92,34 +92,103 @@ az cognitiveservices account deployment create \
 
 ## Step 4: Configure graphify-dotnet
 
-### Option A: Direct Factory (Fine-grained Control)
+### CLI Usage (Recommended)
 
-```csharp
-using Graphify.Sdk;
-using Microsoft.Extensions.AI;
+Use the new System.CommandLine CLI syntax to configure Azure OpenAI:
 
-// Configure directly with AzureOpenAIClientFactory
-var options = new AzureOpenAIOptions(
-    Endpoint: "https://my-graphify-openai.openai.azure.com/",
-    ApiKey: "your-api-key-here",
-    DeploymentName: "gpt-4o",
-    ModelId: "gpt-4o"
-);
+```bash
+# Run with Azure OpenAI
+graphify run ./my-project \
+  --provider azureopenai \
+  --endpoint https://myresource.openai.azure.com/ \
+  --api-key sk-... \
+  --deployment gpt-4o
 
-IChatClient client = AzureOpenAIClientFactory.Create(options);
-
-// Use the client for chat completion
-var response = await client.CompleteAsync("Explain this C# code...");
-Console.WriteLine(response.Message);
+# With custom model
+graphify run ./my-project \
+  --provider azureopenai \
+  --endpoint https://myresource.openai.azure.com/ \
+  --api-key sk-... \
+  --deployment gpt-4o-mini
 ```
 
-### Option B: Unified Factory (Recommended)
+### Configuration Sources
+
+graphify-dotnet supports a layered configuration system (priority order):
+1. **CLI arguments** (highest priority)
+2. **Environment variables**
+3. **User secrets** (.NET user secrets)
+4. **appsettings.json** (lowest priority)
+
+### Environment Variables
+
+Set these for automatic configuration:
+
+```bash
+# Linux/macOS
+export GRAPHIFY__Provider=AzureOpenAI
+export GRAPHIFY__AzureOpenAI__Endpoint=https://myresource.openai.azure.com/
+export GRAPHIFY__AzureOpenAI__ApiKey=sk-...
+export GRAPHIFY__AzureOpenAI__DeploymentName=gpt-4o
+
+# Windows (PowerShell)
+$env:GRAPHIFY__Provider = "AzureOpenAI"
+$env:GRAPHIFY__AzureOpenAI__Endpoint = "https://myresource.openai.azure.com/"
+$env:GRAPHIFY__AzureOpenAI__ApiKey = "sk-..."
+$env:GRAPHIFY__AzureOpenAI__DeploymentName = "gpt-4o"
+```
+
+### User Secrets
+
+Use .NET user secrets for local development (keeps API keys out of source):
+
+```bash
+# Set secrets for your project
+dotnet user-secrets set "Graphify:Provider" "AzureOpenAI"
+dotnet user-secrets set "Graphify:AzureOpenAI:Endpoint" "https://myresource.openai.azure.com/"
+dotnet user-secrets set "Graphify:AzureOpenAI:ApiKey" "sk-..."
+dotnet user-secrets set "Graphify:AzureOpenAI:DeploymentName" "gpt-4o"
+
+# List configured secrets
+dotnet user-secrets list
+```
+
+### appsettings.json
+
+Configure in your application's appsettings.json (API key should still come from secrets):
+
+```json
+{
+  "Graphify": {
+    "Provider": "AzureOpenAI",
+    "AzureOpenAI": {
+      "Endpoint": "https://myresource.openai.azure.com/",
+      "DeploymentName": "gpt-4o",
+      "ModelId": "gpt-4o"
+    }
+  }
+}
+```
+
+### View Current Configuration
+
+Use the `graphify config show` command to verify your configuration:
+
+```bash
+graphify config show
+```
+
+This displays the active configuration values from all sources (sensitive values like API keys are masked).
+
+### Programmatic Configuration (Code)
+
+For SDK usage in your own applications:
 
 ```csharp
 using Graphify.Sdk;
 using Microsoft.Extensions.AI;
 
-// Use the unified ChatClientFactory for flexible provider switching
+// Use the unified ChatClientFactory
 var aiOptions = new AiProviderOptions(
     Provider: AiProvider.AzureOpenAI,
     Endpoint: Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT"),
@@ -133,23 +202,6 @@ IChatClient client = ChatClientFactory.Create(aiOptions);
 // Use the client
 var response = await client.CompleteAsync("Analyze this code structure...");
 Console.WriteLine(response.Message);
-```
-
-### Option C: From Environment Variables
-
-```csharp
-using Graphify.Sdk;
-
-// Read from environment—perfect for production deployments
-var options = new AiProviderOptions(
-    Provider: AiProvider.AzureOpenAI,
-    Endpoint: Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT"),
-    ApiKey: Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY"),
-    DeploymentName: Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT"),
-    ModelId: Environment.GetEnvironmentVariable("AZURE_OPENAI_MODEL") ?? "gpt-4o"
-);
-
-IChatClient client = ChatClientFactory.Create(options);
 ```
 
 ## Full Working Example
@@ -303,7 +355,6 @@ var deploymentName = "gpt-4o";  // Must match Azure Portal exactly
 ## See Also
 
 - [Using graphify-dotnet with Ollama (Local Models)](./setup-ollama.md)
-- [Using graphify-dotnet with GitHub Models](./setup-github-models.md)
 - [Azure OpenAI Documentation](https://learn.microsoft.com/en-us/azure/ai-services/openai/)
 - [Azure OpenAI Models](https://learn.microsoft.com/en-us/azure/ai-services/openai/concepts/models)
 - [API Reference: AzureOpenAIClientFactory](../src/Graphify.Sdk/AzureOpenAIClientFactory.cs)

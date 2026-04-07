@@ -7,7 +7,6 @@ namespace Graphify.Sdk;
 /// </summary>
 public enum AiProvider
 {
-    GitHubModels,
     AzureOpenAI,
     Ollama
 }
@@ -16,8 +15,8 @@ public enum AiProvider
 /// Unified configuration for any AI provider. Supply the fields relevant to your chosen provider.
 /// </summary>
 /// <param name="Provider">Which backend to use.</param>
-/// <param name="Endpoint">Service endpoint URL (required for AzureOpenAI; optional override for GitHubModels/Ollama).</param>
-/// <param name="ApiKey">API key (required for GitHubModels and AzureOpenAI; not needed for Ollama).</param>
+/// <param name="Endpoint">Service endpoint URL (required for AzureOpenAI; optional override for Ollama).</param>
+/// <param name="ApiKey">API key (required for AzureOpenAI; not needed for Ollama).</param>
 /// <param name="ModelId">Model identifier, e.g. "gpt-4o" or "llama3.2".</param>
 /// <param name="DeploymentName">Azure OpenAI deployment name (only used by AzureOpenAI provider).</param>
 public record AiProviderOptions(
@@ -42,14 +41,6 @@ public static class ChatClientFactory
 
         return options.Provider switch
         {
-            AiProvider.GitHubModels => GitHubModelsClientFactory.Create(
-                new CopilotExtractorOptions
-                {
-                    ApiKey = options.ApiKey,
-                    ModelId = options.ModelId ?? "gpt-4o",
-                    Endpoint = options.Endpoint ?? "https://models.inference.ai.azure.com"
-                }),
-
             AiProvider.AzureOpenAI => AzureOpenAIClientFactory.Create(
                 new AzureOpenAIOptions(
                     Endpoint: options.Endpoint ?? throw new ArgumentException("Endpoint is required for Azure OpenAI.", nameof(options)),

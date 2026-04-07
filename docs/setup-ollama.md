@@ -140,32 +140,97 @@ ollama serve
 
 ## Step 4: Configure graphify-dotnet
 
-### Option A: Direct Factory (Fine-grained Control)
+### CLI Usage (Recommended)
 
-```csharp
-using Graphify.Sdk;
-using Microsoft.Extensions.AI;
+Use the new System.CommandLine CLI syntax to configure Ollama:
 
-// Create Ollama-specific options
-var options = new OllamaOptions(
-    Endpoint: "http://localhost:11434",
-    ModelId: "llama3.2"
-);
+```bash
+# Run with default Ollama settings (localhost:11434, llama3.2)
+graphify run ./my-project --provider ollama
 
-IChatClient client = OllamaClientFactory.Create(options);
+# Specify a custom model
+graphify run ./my-project --provider ollama --model codellama
 
-// Use the client for local analysis
-var response = await client.CompleteAsync("Explain this C# code...");
-Console.WriteLine(response.Message);
+# Use a custom endpoint
+graphify run ./my-project --provider ollama --endpoint http://custom:11434
+
+# Combine options
+graphify run ./my-project --provider ollama --model deepseek-coder --endpoint http://192.168.1.100:11434
 ```
 
-### Option B: Unified Factory (Recommended)
+### Configuration Sources
+
+graphify-dotnet supports a layered configuration system (priority order):
+1. **CLI arguments** (highest priority)
+2. **Environment variables**
+3. **User secrets** (.NET user secrets)
+4. **appsettings.json** (lowest priority)
+
+### Environment Variables
+
+Set these for automatic configuration:
+
+```bash
+# Linux/macOS
+export GRAPHIFY__Provider=ollama
+export GRAPHIFY__Ollama__Endpoint=http://localhost:11434
+export GRAPHIFY__Ollama__ModelId=llama3.2
+
+# Windows (PowerShell)
+$env:GRAPHIFY__Provider = "ollama"
+$env:GRAPHIFY__Ollama__Endpoint = "http://localhost:11434"
+$env:GRAPHIFY__Ollama__ModelId = "llama3.2"
+```
+
+### User Secrets
+
+Use .NET user secrets for local development (keeps secrets out of source):
+
+```bash
+# Set secrets for your project
+dotnet user-secrets set "Graphify:Provider" "Ollama"
+dotnet user-secrets set "Graphify:Ollama:Endpoint" "http://localhost:11434"
+dotnet user-secrets set "Graphify:Ollama:ModelId" "llama3.2"
+
+# List configured secrets
+dotnet user-secrets list
+```
+
+### appsettings.json
+
+Configure in your application's appsettings.json:
+
+```json
+{
+  "Graphify": {
+    "Provider": "Ollama",
+    "Ollama": {
+      "Endpoint": "http://localhost:11434",
+      "ModelId": "llama3.2"
+    }
+  }
+}
+```
+
+### View Current Configuration
+
+Use the `graphify config show` command to verify your configuration:
+
+```bash
+graphify config show
+```
+
+This displays the active configuration values from all sources.
+
+### Programmatic Configuration (Code)
+
+For SDK usage in your own applications:
 
 ```csharp
 using Graphify.Sdk;
 using Microsoft.Extensions.AI;
 
-// Use the unified ChatClientFactory for easy provider switching
+// Create Ollama options
 var aiOptions = new AiProviderOptions(
     Provider: AiProvider.Ollama,
     Endpoint: "http://localhost:11434",
@@ -174,24 +239,9 @@ var aiOptions = new AiProviderOptions(
 
 IChatClient client = ChatClientFactory.Create(aiOptions);
 
-// Use the client
-var response = await client.CompleteAsync("Analyze this code structure...");
+// Use the client for local analysis
+var response = await client.CompleteAsync("Explain this C# code...");
 Console.WriteLine(response.Message);
-```
-
-### Option C: With Environment Variables
-
-```csharp
-using Graphify.Sdk;
-
-// Perfect for CI/CD or flexible deployments
-var options = new AiProviderOptions(
-    Provider: AiProvider.Ollama,
-    Endpoint: Environment.GetEnvironmentVariable("OLLAMA_ENDPOINT") ?? "http://localhost:11434",
-    ModelId: Environment.GetEnvironmentVariable("OLLAMA_MODEL") ?? "llama3.2"
-);
-
-IChatClient client = ChatClientFactory.Create(options);
 ```
 
 ## Full Working Example
@@ -441,7 +491,6 @@ var client = ChatClientFactory.Create(options);
 ## See Also
 
 - [Using graphify-dotnet with Azure OpenAI](./setup-azure-openai.md)
-- [Using graphify-dotnet with GitHub Models](./setup-github-models.md)
 - [Ollama Documentation](https://ollama.com)
 - [Available Models](https://ollama.com/library)
 - [API Reference: OllamaClientFactory](../src/Graphify.Sdk/OllamaClientFactory.cs)

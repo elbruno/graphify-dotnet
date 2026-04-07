@@ -21,7 +21,7 @@ graphify-dotnet is a .NET 10 port of the Python graphify project — an AI knowl
 - **SHA256 caching**: Only re-process changed files
 - **Language support**: Python, TypeScript, JavaScript, Go, Rust, Java, C, C++, C#, Ruby, Kotlin, Scala, PHP, Swift, Lua
 - **Multimodal**: Handles code, markdown, PDFs, and images (diagrams, screenshots, whiteboard photos)
-- **Multi-provider AI**: Azure OpenAI, Ollama, and GitHub Models via unified `ChatClientFactory`
+- **Multi-provider AI**: Azure OpenAI and Ollama via unified `ChatClientFactory`
 - **Global dotnet tool**: Install with `dotnet tool install -g graphify-dotnet` and run from anywhere
 - **Incremental watch mode**: File change detection with SHA256 caching — only re-processes what changed
 
@@ -56,7 +56,6 @@ graphify-dotnet supports multiple AI backends through a unified `ChatClientFacto
 
 | Provider | Best For | Guide |
 |----------|----------|-------|
-| GitHub Models | Free tier, quick start | [Setup Guide](docs/setup-github-models.md) |
 | Azure OpenAI | Enterprise, private endpoints | [Setup Guide](docs/setup-azure-openai.md) |
 | Ollama | Local/offline, privacy | [Setup Guide](docs/setup-ollama.md) |
 
@@ -96,6 +95,25 @@ dotnet run --project src/Graphify.Cli -- analyze
 dotnet run --project src/Graphify.Cli -- benchmark
 ```
 
+### AI Provider Configuration
+
+```bash
+# Run with default Azure OpenAI (configured via env vars or secrets)
+graphify run . --provider azureopenai
+
+# Run with Ollama (local models)
+graphify run . --provider ollama
+
+# Specify endpoint and API key (Azure OpenAI)
+graphify run . --provider azureopenai --endpoint https://myresource.openai.azure.com/ --api-key sk-... --deployment gpt-4o
+
+# Custom Ollama endpoint
+graphify run . --provider ollama --endpoint http://custom:11434 --model codellama
+
+# View current configuration
+graphify config show
+```
+
 ### Advanced Options
 
 ```bash
@@ -114,6 +132,41 @@ dotnet run --project src/Graphify.Cli -- run . --no-viz
 # Generate Obsidian vault
 dotnet run --project src/Graphify.Cli -- run . --obsidian
 ```
+
+## Configuration
+
+graphify-dotnet uses a layered configuration system for AI provider settings:
+
+**Priority order** (highest to lowest):
+1. **CLI arguments** — e.g., `--provider ollama --model codellama`
+2. **Environment variables** — e.g., `GRAPHIFY__Provider=ollama`
+3. **User secrets** — e.g., `dotnet user-secrets set "Graphify:Provider" "AzureOpenAI"`
+4. **appsettings.json** — Configuration file in the app directory
+5. **Defaults** — Built-in fallback values
+
+**Common configuration examples:**
+
+```bash
+# Using environment variables
+export GRAPHIFY__Provider=AzureOpenAI
+export GRAPHIFY__AzureOpenAI__Endpoint=https://myresource.openai.azure.com/
+export GRAPHIFY__AzureOpenAI__ApiKey=sk-...
+export GRAPHIFY__AzureOpenAI__DeploymentName=gpt-4o
+
+# Using user secrets
+dotnet user-secrets set "Graphify:Provider" "Ollama"
+dotnet user-secrets set "Graphify:Ollama:Endpoint" "http://localhost:11434"
+
+# Using CLI arguments (highest priority)
+graphify run . --provider azureopenai --endpoint https://... --api-key sk-... --deployment gpt-4o
+
+# View active configuration
+graphify config show
+```
+
+For detailed setup guides, see:
+- [Azure OpenAI Setup](docs/setup-azure-openai.md)
+- [Ollama Setup](docs/setup-ollama.md)
 
 ## Architecture
 
@@ -181,7 +234,6 @@ dotnet run --project src/Graphify.Cli -- run .
 
 - [Azure OpenAI Setup](docs/setup-azure-openai.md)
 - [Ollama Setup](docs/setup-ollama.md)
-- [GitHub Models Setup](docs/setup-github-models.md)
 - [Global Tool Install](docs/dotnet-tool-install.md)
 - [Watch Mode](docs/watch-mode.md)
 - [Architecture](ARCHITECTURE.md)

@@ -2,6 +2,7 @@ using Graphify.Export;
 using Graphify.Graph;
 using Graphify.Models;
 using Graphify.Pipeline;
+using Microsoft.Extensions.AI;
 
 namespace Graphify.Cli;
 
@@ -12,11 +13,13 @@ public sealed class PipelineRunner
 {
     private readonly TextWriter _output;
     private readonly bool _verbose;
+    private readonly IChatClient? _chatClient;
 
-    public PipelineRunner(TextWriter output, bool verbose = false)
+    public PipelineRunner(TextWriter output, bool verbose = false, IChatClient? chatClient = null)
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
         _verbose = verbose;
+        _chatClient = chatClient;
     }
 
     public async Task<KnowledgeGraph?> RunAsync(
@@ -95,6 +98,45 @@ public sealed class PipelineRunner
             var totalEdges = extractionResults.Sum(r => r.Edges.Count);
             await WriteLineAsync($"      Extracted {totalNodes} nodes, {totalEdges} edges");
             await WriteLineAsync();
+
+            // Stage 2b: AI-enhanced semantic extraction (if provider configured)
+            if (_chatClient != null)
+            {
+                await WriteLineAsync("[2b/6] Running AI-enhanced semantic extraction...");
+                var semanticExtractor = new SemanticExtractor(_chatClient);
+                int semanticProcessed = 0;
+
+                foreach (var file in detectedFiles)
+                {
+                    cancellationToken.ThrowIfCancellationRequested();
+                    try
+                    {
+                        var result = await semanticExtractor.ExecuteAsync(file, cancellationToken);
+                        if (result.Nodes.Count > 0 || result.Edges.Count > 0)
+                        {
+                            extractionResults.Add(result);
+                            semanticProcessed++;
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        if (_verbose)
+                            await WriteLineAsync($"      Warning: Semantic extraction failed for {file.RelativePath}: {ex.Message}");
+                    }
+                }
+
+                await WriteLineAsync($"      AI extracted from {semanticProcessed} files");
+                totalNodes = extractionResults.Sum(r => r.Nodes.Count);
+                totalEdges = extractionResults.Sum(r => r.Edges.Count);
+                await WriteLineAsync($"      Total: {totalNodes} nodes, {totalEdges} edges (AST + AI)");
+                await WriteLineAsync();
+            }
+            else
+            {
+                await WriteLineAsync("      \u2139 No AI provider configured. Using AST-only extraction.");
+                await WriteLineAsync("        Use --provider to enable AI-enhanced semantic extraction.");
+                await WriteLineAsync();
+            }
 
             // Stage 3: Build graph
             await WriteLineAsync("[3/6] Building knowledge graph...");

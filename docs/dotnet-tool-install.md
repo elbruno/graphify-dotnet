@@ -82,6 +82,30 @@ graphify watch . --output ./graph-out
 
 # Measure token reduction in an existing graph
 graphify benchmark ./graph-out/graph.json
+
+# View current configuration
+graphify config show
+```
+
+### Provider Configuration
+
+```bash
+# Run with Azure OpenAI (configured via env vars or secrets)
+graphify run . --provider azureopenai
+
+# Run with Ollama (local models)
+graphify run . --provider ollama
+
+# Specify custom endpoint and credentials
+graphify run . --provider azureopenai \
+  --endpoint https://myresource.openai.azure.com/ \
+  --api-key sk-... \
+  --deployment gpt-4o
+
+# Custom Ollama endpoint
+graphify run . --provider ollama \
+  --endpoint http://custom:11434 \
+  --model codellama
 ```
 
 ### Available Commands
@@ -89,6 +113,7 @@ graphify benchmark ./graph-out/graph.json
 - **`graphify run [path] [options]`** — Full pipeline: detect files, extract knowledge, build graph, export
 - **`graphify watch [path] [options]`** — Watch for file changes and incrementally re-process
 - **`graphify benchmark [graph.json]`** — Measure token reduction of a generated graph
+- **`graphify config show`** — Display active configuration from all sources
 
 ### Common Options
 
@@ -97,6 +122,11 @@ graphify benchmark ./graph-out/graph.json
 | `--output` | `-o` | `graphify-out` | Directory where output files are saved |
 | `--format` | `-f` | `json,html` | Export formats (comma-separated: `json`, `html`) |
 | `--verbose` | `-v` | — | Enable detailed output and diagnostics |
+| `--provider` | — | — | AI provider: `azureopenai` or `ollama` |
+| `--endpoint` | — | — | Custom endpoint URL |
+| `--api-key` | — | — | API key (Azure OpenAI) |
+| `--deployment` | — | — | Deployment name (Azure OpenAI) |
+| `--model` | — | — | Model ID (Ollama) |
 | `--help` | `-h` | — | Show command help |
 
 ### Examples
@@ -113,6 +143,9 @@ graphify run /path/to/project --output /path/to/output
 
 # Benchmark a graph
 graphify benchmark ./graphify-out/graph.json
+
+# Run with Ollama using custom endpoint
+graphify run . --provider ollama --endpoint http://192.168.1.100:11434 --model llama3.2
 ```
 
 ## Updating

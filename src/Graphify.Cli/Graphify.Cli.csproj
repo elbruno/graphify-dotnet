@@ -13,18 +13,25 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <RepositoryUrl>https://github.com/elbruno/graphify-dotnet</RepositoryUrl>
+    <UserSecretsId>graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <Content Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.*" />
     <PackageReference Include="System.CommandLine" Version="2.*" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Graphify\Graphify.csproj" />
+    <ProjectReference Include="..\Graphify.Sdk\Graphify.Sdk.csproj" />
   </ItemGroup>
 
 </Project>

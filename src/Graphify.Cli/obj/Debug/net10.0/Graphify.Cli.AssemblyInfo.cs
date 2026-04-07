@@ -10,11 +10,12 @@
 using System;
 using System.Reflection;
 
+[assembly: Microsoft.Extensions.Configuration.UserSecrets.UserSecretsIdAttribute("graphify-dotnet-3134eb8e-5948-4541-b6e4-ab9f52f3df62")]
 [assembly: System.Reflection.AssemblyCompanyAttribute("Bruno Capuano")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyDescriptionAttribute("AI-powered knowledge graph builder for codebases")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+3d6a7d0bc092fc58a4010e377e306154d8f001c4")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.0+9115f2fec504cef1fd55dcf09be7379d7f70a97f")]
 [assembly: System.Reflection.AssemblyProductAttribute("Graphify.Cli")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Graphify.Cli")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.0.0")]
