@@ -486,6 +486,178 @@ Adapt the ElBruno.MarkItDotNet `publish.yml` pattern for our .NET 10 tooling con
 - .NET 10 SDK availability on GitHub runners
 - No external dependencies added (existing packages sufficient)
 
+### Decision: Relative Path Handling — TDD Test Suite for Issue #2
+
+**Author:** Tank (Tester)  
+**Date:** 2026-04-07  
+**Status:** Implemented  
+**Related:** GitHub Issue #2 "Graphify files are taking absolute path instead of relative path"
+
+#### Context
+
+Users reported that JSON and HTML exports store absolute file paths (e.g., `C:\Users\...\src\Class1.cs`) instead of relative paths. This breaks portability: exported graphs are hard to share or move because path references are machine-specific.
+
+#### Decision
+
+Implemented **test-driven specification** for relative path handling:
+- **15 comprehensive xUnit tests** validating JSON/HTML export relative path behavior
+- Tests cover: basic relative paths, cross-platform normalization, nested directories, special characters, edge cases
+- Tests are **intentionally failing** (by design) — they spec out what implementation needs to provide
+
+#### Test Suite Details
+
+**File:** `src/tests/Graphify.Tests/Export/RelativePathHandlingTests.cs`
+
+**Test Categories:**
+
+1. **JSON Relative Paths (3 tests)**
+   - Node file paths must not be `Path.IsPathRooted()` == true
+   - Multiple output locations preserve same relative path strings
+   - Edge metadata paths also relative
+
+2. **HTML Relative Paths (2 tests)**
+   - Embedded JSON within HTML has relative file paths
+   - `source_file` field in vis.js nodes uses relative paths
+
+3. **Cross-Platform Normalization (3 tests)**
+   - Unix (`/`) paths → relative
+   - Windows (`\`) paths → relative
+   - Mixed separators handled gracefully
+
+4. **Nested & Complex Structures (2 tests)**
+   - Deeply nested directories (4 levels) stay relative
+   - Output dir nested within project preserves root-relative paths
+
+5. **Special Characters (1 test)**
+   - Dashes, underscores, dots handled correctly
+
+6. **Edge Cases (4 tests)**
+   - Null/empty paths (concept nodes)
+   - Paths outside project root
+   - Multiple exports consistency
+   - All critical paths covered
+
+#### Key Testing Patterns
+
+- **Path validation:** `Assert.False(Path.IsPathRooted(filePath))` universally validates relative vs absolute
+- **JSON inspection:** Parse exported JSON with `JsonDocument.Parse()` to verify `file_path` fields
+- **HTML embedded JSON:** Search for `"source_file":"C:\\"` patterns in embedded vis.js data
+- **Test isolation:** Each test creates fresh temp directory structure
+- **Known gotchas:** HTML exporter overload ambiguity (use named parameters), NaN in single-node degree calc (test with 2+ connected nodes)
+
+#### Acceptance Criteria
+
+✅ All 15 tests pass after implementation  
+✅ Relative paths consistent across export formats (JSON, HTML)  
+✅ Cross-platform path normalization works on Windows and Linux  
+✅ Edge cases (deeply nested dirs, external files, null paths) handled gracefully  
+✅ No regressions in existing export tests
+
+#### Status
+
+**Pre-implementation:** 7 tests passing (non-file-path scenarios), 8 failing by design  
+**Post-implementation:** 15/15 passing + 599/599 total tests passing (zero regressions)
+
+### Decision: Relative Path Fix (Issue #2) — Core Implementation by Trinity
+
+**Author:** Trinity (Core Dev)  
+**Date:** 2026-04-07  
+**Status:** Implemented & Merged  
+**Related:** GitHub Issue #2, NEO APPROVAL: Relative Path Fix (Issue #2)
+
+#### Context
+
+Issue #2: Users report absolute paths in JSON/HTML exports break portability. Graphs must use relative paths for cross-platform and cross-machine sharing.
+
+#### Decision
+
+Implemented relative path tracking through the entire pipeline:
+
+1. **Data Model (additive, zero breaking changes)**
+   - `ExtractionResult.cs` — Added `string? RelativeSourceFilePath`
+   - `GraphNode.cs` — Added `string? RelativePath`
+   - Immutable records: new property is purely additive
+
+2. **Pipeline Integration**
+   - `FileDetector.cs` — Pre-existing; calculates relative paths from start
+   - `Extractor.cs` — Passes relative paths to `ExtractionResult`
+   - `SemanticExtractor.cs` — Passes relative paths to `ExtractionResult`
+   - `GraphBuilder.cs` — Builds `relativePathMap`, normalizes to forward slashes (`/`), applies to nodes
+
+3. **Export Layer (backward compatible)**
+   - `JsonExporter.cs` — Uses `RelativePath ?? FilePath` fallback
+   - `HtmlExporter.cs` — Uses `RelativePath ?? FilePath` fallback, fixed division-by-zero bug
+
+#### Implementation Details
+
+**Path Normalization:**
+```csharp
+// GraphBuilder.cs line 81
+relativePath = relativePath.Replace('\\', '/');
+```
+
+All paths normalized to forward slashes for consistency:
+- Graphs generated on Windows have identical paths on Linux/Mac
+- Universal portability without platform-specific logic
+
+**Backward Compatibility:**
+```csharp
+// JsonExporter.cs line 45
+FilePath = n.RelativePath ?? n.FilePath,
+
+// HtmlExporter.cs line 132
+var sourceFile = node.RelativePath ?? node.FilePath ?? "";
+```
+
+Graceful fallback chain:
+- If `RelativePath` set → use it (portable)
+- If `RelativePath` null (concept nodes, edge cases) → fall back to `FilePath`
+- Empty case → empty string (no crashes)
+
+Existing behavior preserved; no breaking changes.
+
+#### Edge Cases
+
+- **Concept nodes** (null FilePath) — fallback prevents crashes
+- **Files outside project root** — handled gracefully via `Path.GetRelativePath()`
+- **Deeply nested directories** — normalized paths maintain structure
+- **Mixed separators** — normalized to `/` for consistency
+
+#### Architectural Review
+
+**Reviewed by:** Neo (Lead Architect)  
+**Assessment:** ✅ **EXCELLENT** (production-quality code)
+
+- **Pipeline Integration:** Idiomatic .NET, clean flow
+- **Design:** Immutable models, additive property, zero breaking changes
+- **Portability:** Cross-platform tested (Unix/Windows/mixed)
+- **Compatibility:** Graceful fallback, existing code continues to work
+- **Testing:** 15 comprehensive tests, all passing, zero regressions
+- **Bonus fix:** Division-by-zero in HtmlExporter degree calculation
+
+#### Test Results
+
+```
+Relative Path Tests:      15 PASSED ✅
+All Unit Tests:          573 PASSED ✅
+All Integration Tests:    41 PASSED ✅
+─────────────────────────────────────
+Total:                   614 PASSED ✅
+```
+
+#### Deployment
+
+**Commit:** c22c426 (Fix: Convert absolute paths to relative paths)  
+**Branch:** main  
+**Status:** ✅ Merged to origin  
+**Issue Status:** ✅ Closed with user comment
+
+#### Follow-Up Work
+
+1. ⏭️ **Documentation**: Update README.md to mention relative path portability
+2. ⏭️ **Release notes**: Call out Issue #2 fix in next release
+3. ⏭️ **Optional**: Add `--absolute-paths` CLI flag if users request it
+
 ## Governance
 
 - All meaningful changes require team consensus
