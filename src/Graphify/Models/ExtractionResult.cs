@@ -10,6 +10,10 @@ public record ExtractionResult
     public required IReadOnlyList<ExtractedEdge> Edges { get; init; }
     public string? RawText { get; init; }
     public required string SourceFilePath { get; init; }
+    /// <summary>
+    /// Relative path to the source file, relative to the project root.
+    /// </summary>
+    public string? RelativeSourceFilePath { get; init; }
     public ExtractionMethod Method { get; init; } = ExtractionMethod.Ast;
     public DateTime Timestamp { get; init; } = DateTime.UtcNow;
     public Dictionary<string, double>? ConfidenceScores { get; init; }

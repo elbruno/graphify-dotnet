@@ -42,7 +42,7 @@ public sealed class JsonExporter : IGraphExporter
                 Label = n.Label,
                 Type = n.Type,
                 Community = n.Community,
-                FilePath = n.FilePath,
+                FilePath = n.RelativePath ?? n.FilePath,
                 Language = n.Language,
                 Confidence = n.Confidence.ToString().ToUpperInvariant(),
                 Metadata = n.Metadata

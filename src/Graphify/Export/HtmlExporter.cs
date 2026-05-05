@@ -112,6 +112,9 @@ public sealed class HtmlExporter : IGraphExporter
     {
         var visNodes = new List<object>();
 
+        // Ensure maxDegree is at least 1 to avoid division by zero
+        var safeDegree = maxDegree > 0 ? maxDegree : 1;
+
         foreach (var node in graph.GetNodes())
         {
             var communityId = node.Community ?? 0;
@@ -120,12 +123,13 @@ public sealed class HtmlExporter : IGraphExporter
             var degree = degrees.GetValueOrDefault(node.Id, 1);
 
             // Node size proportional to degree (10-40 range)
-            var size = 10 + 30 * ((double)degree / maxDegree);
+            var size = 10 + 30 * ((double)degree / safeDegree);
 
             // Only show label for high-degree nodes by default; others show on hover
             var fontSize = degree >= maxDegree * 0.15 ? 12 : 0;
 
             var communityName = communityLabels?.GetValueOrDefault(communityId) ?? $"Community {communityId}";
+            var sourceFile = node.RelativePath ?? node.FilePath ?? "";
 
             visNodes.Add(new
             {
@@ -142,7 +146,7 @@ public sealed class HtmlExporter : IGraphExporter
                 title = label,
                 community = communityId,
                 community_name = communityName,
-                source_file = SanitizeLabel(node.FilePath ?? ""),
+                source_file = SanitizeLabel(sourceFile),
                 file_type = node.Type,
                 degree = degree
             });

@@ -24,6 +24,8 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
         var nodeMetadataAggregator = new Dictionary<string, List<ExtractedNode>>();
         var edgeWeightTracker = new Dictionary<EdgeKey, EdgeData>();
         var fileNodes = new HashSet<string>();
+        // Map absolute file paths to relative paths for portability
+        var relativePathMap = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
         // Phase 1: Collect all nodes and track duplicates for merging
         foreach (var extraction in input)
@@ -34,6 +36,12 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
             if (_options.CreateFileNodes && !string.IsNullOrWhiteSpace(extraction.SourceFilePath))
             {
                 fileNodes.Add(extraction.SourceFilePath);
+            }
+
+            // Build mapping of absolute to relative paths
+            if (!string.IsNullOrWhiteSpace(extraction.SourceFilePath) && !string.IsNullOrWhiteSpace(extraction.RelativeSourceFilePath))
+            {
+                relativePathMap[extraction.SourceFilePath] = extraction.RelativeSourceFilePath;
             }
 
             foreach (var node in extraction.Nodes)
@@ -51,7 +59,7 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
         {
             cancellationToken.ThrowIfCancellationRequested();
 
-            var mergedNode = MergeNodes(nodeId, duplicates);
+            var mergedNode = MergeNodes(nodeId, duplicates, relativePathMap);
             graph.AddNode(mergedNode);
         }
 
@@ -65,12 +73,21 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
                 var fileNodeId = $"file:{filePath}";
                 if (graph.GetNode(fileNodeId) == null)
                 {
+                    // Resolve relative path from mapping
+                    var relativePath = relativePathMap.TryGetValue(filePath, out var relPath) ? relPath : null;
+                    // Normalize path separators to forward slashes for cross-platform compatibility
+                    if (!string.IsNullOrEmpty(relativePath))
+                    {
+                        relativePath = relativePath.Replace('\\', '/');
+                    }
+
                     var fileNode = new GraphNode
                     {
                         Id = fileNodeId,
                         Label = Path.GetFileName(filePath),
                         Type = "File",
                         FilePath = filePath,
+                        RelativePath = relativePath,
                         Confidence = Confidence.Extracted,
                         Metadata = new Dictionary<string, string>
                         {
@@ -198,7 +215,7 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
         return Task.FromResult(graph);
     }
 
-    private GraphNode MergeNodes(string nodeId, List<ExtractedNode> duplicates)
+    private GraphNode MergeNodes(string nodeId, List<ExtractedNode> duplicates, Dictionary<string, string> relativePathMap)
     {
         ExtractedNode selected;
 
@@ -279,12 +296,21 @@ public sealed class GraphBuilder : IPipelineStage<IReadOnlyList<ExtractionResult
             type = specificType;
         }
 
+        // Resolve relative path from mapping
+        var relativePath = relativePathMap.TryGetValue(selected.SourceFile, out var relPath) ? relPath : null;
+        // Normalize path separators to forward slashes for cross-platform compatibility
+        if (!string.IsNullOrEmpty(relativePath))
+        {
+            relativePath = relativePath.Replace('\\', '/');
+        }
+
         return new GraphNode
         {
             Id = nodeId,
             Label = selected.Label,
             Type = type,
             FilePath = selected.SourceFile,
+            RelativePath = relativePath,
             Confidence = Confidence.Extracted, // Default to Extracted (AST-based)
             Metadata = metadata
         };

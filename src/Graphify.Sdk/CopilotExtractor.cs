@@ -204,6 +204,7 @@ public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
             Nodes = nodes,
             Edges = edges,
             SourceFilePath = sourceFile.FilePath,
+            RelativeSourceFilePath = sourceFile.RelativePath,
             Method = ExtractionMethod.Semantic,
             ConfidenceScores = confidenceScores.Count > 0 ? confidenceScores : null
         };
@@ -216,6 +217,7 @@ public class CopilotExtractor : IPipelineStage<DetectedFile, ExtractionResult>
             Nodes = Array.Empty<ExtractedNode>(),
             Edges = Array.Empty<ExtractedEdge>(),
             SourceFilePath = file.FilePath,
+            RelativeSourceFilePath = file.RelativePath,
             Method = ExtractionMethod.Semantic
         };
     }

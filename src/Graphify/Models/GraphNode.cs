@@ -27,6 +27,12 @@ public sealed record GraphNode
     public string? FilePath { get; init; }
 
     /// <summary>
+    /// Relative path to the source file, relative to the project root.
+    /// Used for portability in exported graphs.
+    /// </summary>
+    public string? RelativePath { get; init; }
+
+    /// <summary>
     /// Programming language (e.g., "csharp", "python", "typescript").
     /// </summary>
     public string? Language { get; init; }

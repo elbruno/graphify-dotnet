@@ -36,6 +36,7 @@ public sealed partial class Extractor : IPipelineStage<DetectedFile, ExtractionR
                 Nodes = Array.Empty<ExtractedNode>(),
                 Edges = Array.Empty<ExtractedEdge>(),
                 SourceFilePath = input.FilePath,
+                RelativeSourceFilePath = input.RelativePath,
                 Method = ExtractionMethod.Ast
             };
         }
@@ -48,6 +49,7 @@ public sealed partial class Extractor : IPipelineStage<DetectedFile, ExtractionR
             Nodes = nodes,
             Edges = edges,
             SourceFilePath = input.FilePath,
+            RelativeSourceFilePath = input.RelativePath,
             Method = ExtractionMethod.Ast,
             RawText = content
         };

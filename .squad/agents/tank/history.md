@@ -511,3 +511,66 @@ Report written to: `.squad/decisions/inbox/tank-docs-validation.md`
 - Symlink tests skip on Windows (elevated privileges required) using early return + `[Trait("Category", "UnixOnly")]`
 - ConfigPersistence tests must backup/restore the config file to avoid polluting other tests
 - Pre-existing failures in `ConfigPersistenceTests.Save_Load_RoundTrip_AzureOpenAI` and `ConfigurationFactoryTests.Build_LocalConfig_BindsToGraphifyConfig` — not caused by security changes
+
+### 2026-04-07: Relative Path Handling Tests (Issue #2 — TDD Suite)
+
+**What:** Created 15 comprehensive xUnit tests for JSON/HTML export relative path handling to spec out Trinity's fix for Issue #2 ("Graphify files are taking absolute path instead of relative path").
+
+**Test File:** `src/tests/Graphify.Tests/Export/RelativePathHandlingTests.cs` (700+ lines)
+
+**Test Coverage (organized by feature):**
+
+1. **JSON Export Relative Paths (5 tests)**
+   - `JsonExport_NodeFilePaths_AreRelative` — Verify no node has Path.IsPathRooted() == true
+   - `JsonExport_NodeFilePaths_CorrectlyNormalized` — Paths with nested subdirs remain relative
+   - `JsonExport_MultipleOutputLocations_PreservesRelativePaths` — Same graph exported to different dirs produces identical relative paths
+   - `JsonExport_EdgeMetadata_PreservesRelativePaths` — Edge metadata paths stored as relative
+   - *All 5 currently FAIL* — exporters store absolute paths (bug in current JsonExporter)
+
+2. **HTML Export Relative Paths (2 tests)**
+   - `HtmlExport_EmbeddedPaths_AreRelative` — Embedded JSON within HTML has relative file paths
+   - `HtmlExport_SourceFileInfo_IsRelative` — source_file field in vis.js nodes is relative
+   - *Fail with JSON serialization error* (NaN in degree calc + embedded abs paths)
+
+3. **Cross-Platform Path Normalization (4 tests)**
+   - `PathNormalization_UnixPaths_ConvertedCorrectly` — Unix `/` paths preserved as relative
+   - `PathNormalization_WindowsPaths_ConvertedCorrectly` — Windows `\` paths preserved as relative
+   - `PathNormalization_MixedPathSeparators_Handled` — Edge case with mixed `/` and `\`
+   - `PathNormalization_AllHandled_Consistently` — Each becomes relative, not absolute
+
+4. **Nested Directories (2 tests)**
+   - `DeeplyNestedDirectories_RelativePathsMaintained` — 4-level deep structure stays relative
+   - `OutputDirWithinProjectRoot_RelativePathsCorrect` — Output to `results/exports/graphs/` preserves root-relative paths (not output-relative)
+
+5. **Special Characters & Edge Cases (3 tests)**
+   - `SpecialCharactersInPaths_HandledCorrectly` — Dashes, underscores, dots in filenames
+   - `EmptyFilePath_HandledGracefully` — Concept nodes (null FilePath) don't crash
+   - `FilePathsOutsideProjectRoot_StillRelative` — Graceful handling of external files
+
+6. **Consistency (1 test)**
+   - `MultipleExports_ProduceSamePaths` — Exporting same graph twice yields identical path strings
+
+**Key Test Patterns & Learnings:**
+
+- **Test Setup:** Uses IDisposable with temp directory structure (`_testRoot/MyProject/src/`, `graph-output/`) to isolate each test. Each test creates its own project layout.
+- **Path.IsPathRooted() check:** Universal test for absolute vs relative (`Assert.False(Path.IsPathRooted(filePath))`)
+- **JSON parsing verification:** Use `JsonDocument.Parse()` to read exported JSON and inspect file_path fields
+- **HTML embedded JSON:** File paths are embedded in JavaScript/vis.js data within HTML; must search for `"source_file":"C:\\"` patterns
+- **NaN serialization:** HtmlExporter calls `JsonSerializer.Serialize(visNodes)` which fails if degree calc produces NaN (happens with single isolated node). Always add 2+ nodes with edges in HTML tests.
+- **HTML exporter ambiguous overload:** `ExportAsync(graph, path)` is ambiguous between 2-param and 4-param versions. Must call with explicit `cancellationToken: default` or `communityLabels: null` parameter.
+
+**Specification for Trinity (Implementation Notes):**
+
+The bug is in how JsonExporter and HtmlExporter store file paths:
+- **Current:** Stores absolute paths like `C:\Users\brunocapuano\AppData\Local\Temp\vzzh0gyn\MyProject\src\Class1.cs`
+- **Expected:** Store relative paths like `src/Class1.cs` or `src\Class1.cs` (OS-native separator)
+
+Trinity's fix should:
+1. Compute relative paths before serialization (e.g., `Path.GetRelativePath()` from a common root)
+2. Use a consistent reference point (project root or output directory) for all relative paths
+3. Preserve the relative path in JSON `file_path` field and HTML `source_file` field
+4. Handle edge cases: null paths (concept nodes), external files, deeply nested dirs
+
+**Test Status:** 15 tests total — 8 FAIL (by design, TDD spec), 7 PASS (JSON/HTML with no file paths work fine)
+
+---
