@@ -135,32 +135,30 @@ public static class ConfigPersistence
         if (config.ExportFormats != null)
             result["ExportFormats"] = config.ExportFormats;
 
-        switch (config.Provider?.ToLowerInvariant())
+        var providerKey = config.Provider?.ToLowerInvariant();
+        switch (providerKey)
         {
             case "azureopenai":
                 // API key is stored in user-secrets, NOT in the JSON file
-                var azureConfig = new Dictionary<string, string?>
+                result["AzureOpenAI"] = new
                 {
-                    ["Endpoint"] = config.AzureOpenAI.Endpoint,
-                    ["DeploymentName"] = config.AzureOpenAI.DeploymentName,
-                    ["ModelId"] = config.AzureOpenAI.ModelId
+                    config.AzureOpenAI.Endpoint,
+                    config.AzureOpenAI.DeploymentName,
+                    config.AzureOpenAI.ModelId
                 };
-                result["AzureOpenAI"] = azureConfig;
                 break;
             case "ollama":
-                var ollamaConfig = new Dictionary<string, string>
+                result["Ollama"] = new
                 {
-                    ["Endpoint"] = config.Ollama.Endpoint,
-                    ["ModelId"] = config.Ollama.ModelId
+                    config.Ollama.Endpoint,
+                    config.Ollama.ModelId
                 };
-                result["Ollama"] = ollamaConfig;
                 break;
             case "copilotsdk":
-                var copilotConfig = new Dictionary<string, string>
+                result["CopilotSdk"] = new
                 {
-                    ["ModelId"] = config.CopilotSdk.ModelId
+                    config.CopilotSdk.ModelId
                 };
-                result["CopilotSdk"] = copilotConfig;
                 break;
         }
 

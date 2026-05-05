@@ -1,0 +1,8 @@
+Test run for C:\src\graphify-dotnet\src\tests\Graphify.Integration.Tests\bin\Release\net10.0\Graphify.Integration.Tests.dll (.NETCoreApp,Version=v10.0)
+Test run for C:\src\graphify-dotnet\src\tests\Graphify.Tests\bin\Release\net10.0\Graphify.Tests.dll (.NETCoreApp,Version=v10.0)
+A total of 1 test files matched the specified pattern.
+A total of 1 test files matched the specified pattern.
+
+Passed!  - Failed:     0, Passed:    41, Skipped:     0, Total:    41, Duration: 2 s - Graphify.Integration.Tests.dll (net10.0)
+
+Passed!  - Failed:     0, Passed:   573, Skipped:     0, Total:   573, Duration: 30 s - Graphify.Tests.dll (net10.0)

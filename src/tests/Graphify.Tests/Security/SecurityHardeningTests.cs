@@ -10,6 +10,7 @@ namespace Graphify.Tests.Security;
 /// error sanitization, config loading, cache permissions.
 /// Covers FINDING-001, FINDING-003, FINDING-009, FINDING-010, FINDING-011.
 /// </summary>
+[Collection("ConfigFile")]
 [Trait("Category", "Security")]
 public sealed class SecurityHardeningTests
 {
