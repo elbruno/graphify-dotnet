@@ -57,7 +57,11 @@ jobs:
         run: dotnet build graphify-dotnet.slnx -c Release --no-restore -p:Version=${{ steps.version.outputs.version }}
 
       - name: Ensure xunit configuration is in place
-        run: cp src/tests/Graphify.Tests/xunit.runner.json src/tests/Graphify.Tests/bin/Release/net10.0/xunit.runner.json
+        run: |
+          mkdir -p src/tests/Graphify.Tests/bin/Release/net10.0
+          mkdir -p src/tests/Graphify.Integration.Tests/bin/Release/net10.0
+          cp src/tests/Graphify.Tests/xunit.runner.json src/tests/Graphify.Tests/bin/Release/net10.0/xunit.runner.json
+          cp src/tests/Graphify.Tests/xunit.runner.json src/tests/Graphify.Integration.Tests/bin/Release/net10.0/xunit.runner.json
 
       - name: Run all tests
         run: dotnet test graphify-dotnet.slnx -c Release --no-build --verbosity normal

@@ -19,4 +19,8 @@
     <ProjectReference Include="..\..\Graphify.Sdk\Graphify.Sdk.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
