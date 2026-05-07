@@ -65,9 +65,12 @@ public sealed class PipelineRunner
             var extractionResults = new List<ExtractionResult>();
             int processed = 0;
             int skipped = 0;
+            int astIndex = 0;
 
             foreach (var file in detectedFiles)
             {
+                astIndex++;
+                WriteProgress("Extracting...", astIndex, detectedFiles.Count);
                 cancellationToken.ThrowIfCancellationRequested();
 
                 try
@@ -93,6 +96,7 @@ public sealed class PipelineRunner
                 }
             }
 
+            await WriteLineAsync();
             await WriteLineAsync($"      Processed {processed} files, skipped {skipped}");
             var totalNodes = extractionResults.Sum(r => r.Nodes.Count);
             var totalEdges = extractionResults.Sum(r => r.Edges.Count);
@@ -105,9 +109,12 @@ public sealed class PipelineRunner
                 await WriteLineAsync("[2b/6] Running AI-enhanced semantic extraction...");
                 var semanticExtractor = new SemanticExtractor(_chatClient);
                 int semanticProcessed = 0;
+                int semanticIndex = 0;
 
                 foreach (var file in detectedFiles)
                 {
+                    semanticIndex++;
+                    WriteProgress("AI extracting...", semanticIndex, detectedFiles.Count);
                     cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
@@ -125,6 +132,7 @@ public sealed class PipelineRunner
                     }
                 }
 
+                await WriteLineAsync();
                 await WriteLineAsync($"      AI extracted from {semanticProcessed} files");
                 totalNodes = extractionResults.Sum(r => r.Nodes.Count);
                 totalEdges = extractionResults.Sum(r => r.Edges.Count);
@@ -314,6 +322,11 @@ public sealed class PipelineRunner
     private async Task WriteLineAsync(string message = "")
     {
         await _output.WriteLineAsync(message);
+    }
+
+    private void WriteProgress(string label, int current, int total)
+    {
+        _output.Write($"\r      {label} [{current}/{total}]");
     }
 
     private static Dictionary<int, string> BuildCommunityLabels(KnowledgeGraph graph)

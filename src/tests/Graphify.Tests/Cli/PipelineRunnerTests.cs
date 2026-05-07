@@ -39,4 +39,55 @@ public class PipelineRunnerTests
         var runner = new PipelineRunner(TextWriter.Null);
         Assert.NotNull(runner);
     }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public async Task RunAsync_AstOnlyMode_WritesProgressCounter()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"graphify-progress-{Guid.NewGuid():N}");
+        var outputDir = Path.Combine(Path.GetTempPath(), $"graphify-out-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        await File.WriteAllTextAsync(Path.Combine(tempDir, "Sample.cs"), "public class Sample { }");
+
+        var output = new StringWriter();
+        var runner = new PipelineRunner(output, verbose: false, chatClient: null);
+
+        try
+        {
+            await runner.RunAsync(tempDir, outputDir, ["json"], useCache: false, CancellationToken.None);
+            var text = output.ToString();
+            Assert.Matches(@"\[1/1\]", text);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(outputDir)) Directory.Delete(outputDir, recursive: true);
+        }
+    }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public async Task RunAsync_AstOnlyMode_ProgressCounterReachesTotal()
+    {
+        var tempDir = Path.Combine(Path.GetTempPath(), $"graphify-progress-{Guid.NewGuid():N}");
+        var outputDir = Path.Combine(Path.GetTempPath(), $"graphify-out-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(tempDir);
+        await File.WriteAllTextAsync(Path.Combine(tempDir, "A.cs"), "public class A { }");
+        await File.WriteAllTextAsync(Path.Combine(tempDir, "B.cs"), "public class B { }");
+
+        var output = new StringWriter();
+        var runner = new PipelineRunner(output, verbose: false, chatClient: null);
+
+        try
+        {
+            await runner.RunAsync(tempDir, outputDir, ["json"], useCache: false, CancellationToken.None);
+            var text = output.ToString();
+            Assert.Matches(@"\[2/2\]", text);
+        }
+        finally
+        {
+            if (Directory.Exists(tempDir)) Directory.Delete(tempDir, recursive: true);
+            if (Directory.Exists(outputDir)) Directory.Delete(outputDir, recursive: true);
+        }
+    }
 }
