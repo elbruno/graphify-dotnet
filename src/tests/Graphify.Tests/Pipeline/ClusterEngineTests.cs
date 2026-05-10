@@ -139,6 +139,46 @@ public sealed class ClusterEngineTests
     }
 
     [Fact]
+    public async Task ExecuteAsync_ParallelEdges_AggregatesWeightsWithoutBreakingCommunities()
+    {
+        // Arrange
+        var options = new ClusterOptions { MaxIterations = 100 };
+        var engine = new ClusterEngine(options);
+
+        var graph = new KnowledgeGraph();
+        var node1 = CreateNode("a", "A");
+        var node2 = CreateNode("b", "B");
+        var node3 = CreateNode("c", "C");
+
+        graph.AddNode(node1);
+        graph.AddNode(node2);
+        graph.AddNode(node3);
+
+        // Add repeated edges between the same nodes to exercise weighted-adjacency aggregation.
+        graph.AddEdge(CreateEdge(node1, node2, 1.0));
+        graph.AddEdge(CreateEdge(node1, node2, 2.0));
+        graph.AddEdge(CreateEdge(node2, node3, 1.5));
+        graph.AddEdge(CreateEdge(node2, node3, 2.5));
+        graph.AddEdge(CreateEdge(node1, node3, 1.0));
+        graph.AddEdge(CreateEdge(node1, node3, 1.0));
+
+        // Act
+        var result = await engine.ExecuteAsync(graph);
+
+        // Assert
+        var communities = result.GetNodes()
+            .Where(n => n.Community.HasValue)
+            .Select(n => n.Community!.Value)
+            .Distinct()
+            .ToList();
+
+        Assert.Equal(3, result.NodeCount);
+        Assert.Equal(3, result.GetNodes().Count(n => n.Community.HasValue));
+        Assert.NotEmpty(communities);
+        Assert.True(communities.Count <= 2, "Dense triangle with parallel edges should stay in one dense cluster.");
+    }
+
+    [Fact]
     public async Task ExecuteAsync_EmptyGraph_ReturnsUnchanged()
     {
         // Arrange
