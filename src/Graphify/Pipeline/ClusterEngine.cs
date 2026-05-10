@@ -50,65 +50,109 @@ public sealed class ClusterEngine : IPipelineStage<KnowledgeGraph, KnowledgeGrap
         }
 
         // Phase 1: Initialize - each node is its own community
-        var nodeToCommunity = new Dictionary<string, int>();
         var nodes = graph.GetNodes().ToList();
-        for (int i = 0; i < nodes.Count; i++)
+        int nodeCount = nodes.Count;
+
+        // Precompute weighted adjacency (neighbor -> aggregated edge weight) and per-node degree.
+        // This collapses parallel edges and lets the Louvain main loop run in O(E) per iteration
+        // instead of re-walking the whole graph for each gain evaluation.
+        var adjacency = new Dictionary<string, Dictionary<string, double>>(nodeCount);
+        var nodeDegree = new Dictionary<string, double>(nodeCount);
+
+        foreach (var node in nodes)
         {
-            nodeToCommunity[nodes[i].Id] = i;
+            var neighborWeights = new Dictionary<string, double>();
+            double degree = 0.0;
+            foreach (var edge in graph.GetEdges(node.Id))
+            {
+                var neighborId = edge.Source.Id == node.Id ? edge.Target.Id : edge.Source.Id;
+                if (neighborWeights.TryGetValue(neighborId, out var existing))
+                {
+                    neighborWeights[neighborId] = existing + edge.Weight;
+                }
+                else
+                {
+                    neighborWeights[neighborId] = edge.Weight;
+                }
+                degree += edge.Weight;
+            }
+            adjacency[node.Id] = neighborWeights;
+            nodeDegree[node.Id] = degree;
         }
 
-        double totalEdgeWeight = graph.GetEdges().Sum(e => e.Weight);
+        double totalEdgeWeight = nodeDegree.Values.Sum() / 2.0;
+        double m2 = 2.0 * totalEdgeWeight;
+        double m2Sq = m2 * m2;
+
+        var nodeToCommunity = new Dictionary<string, int>(nodeCount);
+        var communityTotalDegree = new Dictionary<int, double>(nodeCount);
+        for (int i = 0; i < nodeCount; i++)
+        {
+            var id = nodes[i].Id;
+            nodeToCommunity[id] = i;
+            communityTotalDegree[i] = nodeDegree[id];
+        }
+
         bool improved = true;
         int iteration = 0;
+        var edgesToCommunity = new Dictionary<int, double>();
 
         while (improved && iteration < _options.MaxIterations)
         {
             improved = false;
             iteration++;
 
-            // For each node, try moving to neighbor communities
             foreach (var node in nodes)
             {
-                var currentCommunity = nodeToCommunity[node.Id];
-                var bestCommunity = currentCommunity;
-                double bestGain = 0.0;
+                var nodeId = node.Id;
+                var currentCommunity = nodeToCommunity[nodeId];
+                var nDegree = nodeDegree[nodeId];
+                var neighbors = adjacency[nodeId];
 
-                // Get neighboring communities
-                var neighborCommunities = new HashSet<int>();
-                foreach (var edge in graph.GetEdges(node.Id))
+                // Aggregate edge weight from this node into each neighboring community in one pass.
+                edgesToCommunity.Clear();
+                foreach (var (neighborId, weight) in neighbors)
                 {
-                    var neighborId = edge.Source.Id == node.Id ? edge.Target.Id : edge.Source.Id;
-                    if (nodeToCommunity.TryGetValue(neighborId, out var neighborCommunity))
+                    if (neighborId == nodeId) continue;
+                    var neighborCommunity = nodeToCommunity[neighborId];
+                    if (edgesToCommunity.TryGetValue(neighborCommunity, out var w))
                     {
-                        neighborCommunities.Add(neighborCommunity);
+                        edgesToCommunity[neighborCommunity] = w + weight;
+                    }
+                    else
+                    {
+                        edgesToCommunity[neighborCommunity] = weight;
                     }
                 }
 
-                // Try moving to each neighbor community
-                foreach (var targetCommunity in neighborCommunities)
-                {
-                    if (targetCommunity == currentCommunity)
-                        continue;
+                double edgesToCurrent = edgesToCommunity.TryGetValue(currentCommunity, out var ec) ? ec : 0.0;
+                double currentTotal = communityTotalDegree[currentCommunity];
 
-                    double gain = CalculateModularityGain(
-                        graph,
-                        node.Id,
-                        currentCommunity,
-                        targetCommunity,
-                        nodeToCommunity,
-                        totalEdgeWeight
+                int bestCommunity = currentCommunity;
+                double bestGain = 0.0;
+
+                foreach (var (targetCommunity, edgesToTarget) in edgesToCommunity)
+                {
+                    if (targetCommunity == currentCommunity) continue;
+
+                    double targetTotal = communityTotalDegree[targetCommunity];
+                    double deltaQ = _options.Resolution * (
+                        (edgesToTarget - edgesToCurrent) / m2 +
+                        (currentTotal - targetTotal - nDegree) * nDegree / m2Sq
                     );
 
-                    if (gain > bestGain)
+                    if (deltaQ > bestGain)
                     {
-                        bestGain = gain;
+                        bestGain = deltaQ;
                         bestCommunity = targetCommunity;
                     }
                 }
 
                 if (bestCommunity != currentCommunity)
                 {
-                    nodeToCommunity[node.Id] = bestCommunity;
+                    communityTotalDegree[currentCommunity] -= nDegree;
+                    communityTotalDegree[bestCommunity] += nDegree;
+                    nodeToCommunity[nodeId] = bestCommunity;
                     improved = true;
                 }
             }
@@ -157,113 +201,67 @@ public sealed class ClusterEngine : IPipelineStage<KnowledgeGraph, KnowledgeGrap
     }
 
     /// <summary>
-    /// Calculate modularity gain from moving a node to a new community.
-    /// </summary>
-    private double CalculateModularityGain(
-        KnowledgeGraph graph,
-        string nodeId,
-        int currentCommunity,
-        int targetCommunity,
-        Dictionary<string, int> nodeToCommunity,
-        double totalEdgeWeight)
-    {
-        if (totalEdgeWeight == 0)
-            return 0.0;
-
-        var node = graph.GetNode(nodeId);
-        if (node == null)
-            return 0.0;
-
-        // Calculate node degree and edges to target community
-        double nodeDegree = 0.0;
-        double edgesToTarget = 0.0;
-        double edgesToCurrent = 0.0;
-
-        foreach (var edge in graph.GetEdges(nodeId))
-        {
-            double weight = edge.Weight;
-            nodeDegree += weight;
-
-            var neighborId = edge.Source.Id == nodeId ? edge.Target.Id : edge.Source.Id;
-            if (nodeToCommunity.TryGetValue(neighborId, out var neighborCommunity))
-            {
-                if (neighborCommunity == targetCommunity)
-                    edgesToTarget += weight;
-                if (neighborCommunity == currentCommunity && neighborId != nodeId)
-                    edgesToCurrent += weight;
-            }
-        }
-
-        // Calculate community totals
-        double targetCommunityTotal = 0.0;
-        double currentCommunityTotal = 0.0;
-
-        foreach (var otherNode in graph.GetNodes())
-        {
-            if (!nodeToCommunity.TryGetValue(otherNode.Id, out var otherCommunity))
-                continue;
-
-            double otherDegree = graph.GetEdges(otherNode.Id).Sum(e => e.Weight);
-
-            if (otherCommunity == targetCommunity)
-                targetCommunityTotal += otherDegree;
-            if (otherCommunity == currentCommunity)
-                currentCommunityTotal += otherDegree;
-        }
-
-        double m2 = 2.0 * totalEdgeWeight;
-
-        // Modularity gain formula
-        double deltaQ = _options.Resolution * (
-            (edgesToTarget - edgesToCurrent) / m2 +
-            (currentCommunityTotal - targetCommunityTotal - nodeDegree) * nodeDegree / (m2 * m2)
-        );
-
-        return deltaQ;
-    }
-
-    /// <summary>
-    /// Split oversized community by running Louvain on the subgraph.
+    /// Split oversized community by running Louvain on the subgraph induced by <paramref name="nodeIds"/>.
     /// </summary>
     private List<List<string>> SplitCommunity(KnowledgeGraph graph, List<string> nodeIds, int maxSize)
     {
         if (nodeIds.Count <= maxSize)
             return new List<List<string>> { nodeIds };
 
-        // Build subgraph edges
-        var subgraphEdges = new List<GraphEdge>();
         var nodeSet = new HashSet<string>(nodeIds);
+
+        // Build sub-adjacency: only edges that stay inside nodeSet.
+        var subAdjacency = new Dictionary<string, Dictionary<string, double>>(nodeIds.Count);
+        var subNodeDegree = new Dictionary<string, double>(nodeIds.Count);
+        double subTotalWeightDoubled = 0.0;
 
         foreach (var nodeId in nodeIds)
         {
+            var neighborWeights = new Dictionary<string, double>();
+            double degree = 0.0;
             foreach (var edge in graph.GetEdges(nodeId))
             {
-                var otherId = edge.Source.Id == nodeId ? edge.Target.Id : edge.Source.Id;
-                if (nodeSet.Contains(otherId) && string.Compare(edge.Source.Id, edge.Target.Id, StringComparison.Ordinal) < 0)
+                var neighborId = edge.Source.Id == nodeId ? edge.Target.Id : edge.Source.Id;
+                if (!nodeSet.Contains(neighborId)) continue;
+                if (neighborWeights.TryGetValue(neighborId, out var existing))
                 {
-                    subgraphEdges.Add(edge);
+                    neighborWeights[neighborId] = existing + edge.Weight;
                 }
+                else
+                {
+                    neighborWeights[neighborId] = edge.Weight;
+                }
+                degree += edge.Weight;
             }
+            subAdjacency[nodeId] = neighborWeights;
+            subNodeDegree[nodeId] = degree;
+            subTotalWeightDoubled += degree;
         }
 
-        if (subgraphEdges.Count == 0)
+        double subTotalWeight = subTotalWeightDoubled / 2.0;
+        if (subTotalWeight == 0.0)
         {
-            // No internal edges - split into individual nodes
             return nodeIds.Select(id => new List<string> { id }).ToList();
         }
 
-        // Run simplified Louvain on subgraph
-        var subNodeToCommunity = new Dictionary<string, int>();
+        var subNodeToCommunity = new Dictionary<string, int>(nodeIds.Count);
+        var subCommunityTotalDegree = new Dictionary<int, double>(nodeIds.Count);
         for (int i = 0; i < nodeIds.Count; i++)
         {
-            subNodeToCommunity[nodeIds[i]] = i;
+            var id = nodeIds[i];
+            subNodeToCommunity[id] = i;
+            subCommunityTotalDegree[i] = subNodeDegree[id];
         }
 
-        double subTotalWeight = subgraphEdges.Sum(e => e.Weight);
+        double m2 = 2.0 * subTotalWeight;
+        double m2Sq = m2 * m2;
+
         bool improved = true;
         int iteration = 0;
+        int maxIter = Math.Min(50, _options.MaxIterations);
+        var edgesToCommunity = new Dictionary<int, double>();
 
-        while (improved && iteration < Math.Min(50, _options.MaxIterations))
+        while (improved && iteration < maxIter)
         {
             improved = false;
             iteration++;
@@ -271,43 +269,51 @@ public sealed class ClusterEngine : IPipelineStage<KnowledgeGraph, KnowledgeGrap
             foreach (var nodeId in nodeIds)
             {
                 var currentCommunity = subNodeToCommunity[nodeId];
-                var bestCommunity = currentCommunity;
-                double bestGain = 0.0;
+                var nDegree = subNodeDegree[nodeId];
+                var neighbors = subAdjacency[nodeId];
 
-                var neighborCommunities = new HashSet<int>();
-                foreach (var edge in graph.GetEdges(nodeId))
+                edgesToCommunity.Clear();
+                foreach (var (neighborId, weight) in neighbors)
                 {
-                    var neighborId = edge.Source.Id == nodeId ? edge.Target.Id : edge.Source.Id;
-                    if (subNodeToCommunity.TryGetValue(neighborId, out var neighborCommunity))
+                    if (neighborId == nodeId) continue;
+                    var neighborCommunity = subNodeToCommunity[neighborId];
+                    if (edgesToCommunity.TryGetValue(neighborCommunity, out var w))
                     {
-                        neighborCommunities.Add(neighborCommunity);
+                        edgesToCommunity[neighborCommunity] = w + weight;
+                    }
+                    else
+                    {
+                        edgesToCommunity[neighborCommunity] = weight;
                     }
                 }
 
-                foreach (var targetCommunity in neighborCommunities)
-                {
-                    if (targetCommunity == currentCommunity)
-                        continue;
+                double edgesToCurrent = edgesToCommunity.TryGetValue(currentCommunity, out var ec) ? ec : 0.0;
+                double currentTotal = subCommunityTotalDegree[currentCommunity];
 
-                    double gain = CalculateSubgraphModularityGain(
-                        graph,
-                        nodeId,
-                        currentCommunity,
-                        targetCommunity,
-                        subNodeToCommunity,
-                        nodeSet,
-                        subTotalWeight
+                int bestCommunity = currentCommunity;
+                double bestGain = 0.0;
+
+                foreach (var (targetCommunity, edgesToTarget) in edgesToCommunity)
+                {
+                    if (targetCommunity == currentCommunity) continue;
+
+                    double targetTotal = subCommunityTotalDegree[targetCommunity];
+                    double deltaQ = _options.Resolution * (
+                        (edgesToTarget - edgesToCurrent) / m2 +
+                        (currentTotal - targetTotal - nDegree) * nDegree / m2Sq
                     );
 
-                    if (gain > bestGain)
+                    if (deltaQ > bestGain)
                     {
-                        bestGain = gain;
+                        bestGain = deltaQ;
                         bestCommunity = targetCommunity;
                     }
                 }
 
                 if (bestCommunity != currentCommunity)
                 {
+                    subCommunityTotalDegree[currentCommunity] -= nDegree;
+                    subCommunityTotalDegree[bestCommunity] += nDegree;
                     subNodeToCommunity[nodeId] = bestCommunity;
                     improved = true;
                 }
@@ -325,77 +331,6 @@ public sealed class ClusterEngine : IPipelineStage<KnowledgeGraph, KnowledgeGrap
         }
 
         return subCommunities.Values.ToList();
-    }
-
-    /// <summary>
-    /// Calculate modularity gain within a subgraph during splitting.
-    /// </summary>
-    private double CalculateSubgraphModularityGain(
-        KnowledgeGraph graph,
-        string nodeId,
-        int currentCommunity,
-        int targetCommunity,
-        Dictionary<string, int> subNodeToCommunity,
-        HashSet<string> nodeSet,
-        double totalEdgeWeight)
-    {
-        if (totalEdgeWeight == 0)
-            return 0.0;
-
-        double nodeDegree = 0.0;
-        double edgesToTarget = 0.0;
-        double edgesToCurrent = 0.0;
-
-        foreach (var edge in graph.GetEdges(nodeId))
-        {
-            var neighborId = edge.Source.Id == nodeId ? edge.Target.Id : edge.Source.Id;
-            if (!nodeSet.Contains(neighborId))
-                continue;
-
-            double weight = edge.Weight;
-            nodeDegree += weight;
-
-            if (subNodeToCommunity.TryGetValue(neighborId, out var neighborCommunity))
-            {
-                if (neighborCommunity == targetCommunity)
-                    edgesToTarget += weight;
-                if (neighborCommunity == currentCommunity && neighborId != nodeId)
-                    edgesToCurrent += weight;
-            }
-        }
-
-        double targetCommunityTotal = 0.0;
-        double currentCommunityTotal = 0.0;
-
-        foreach (var otherId in nodeSet)
-        {
-            if (!subNodeToCommunity.TryGetValue(otherId, out var otherCommunity))
-                continue;
-
-            double otherDegree = 0.0;
-            foreach (var edge in graph.GetEdges(otherId))
-            {
-                var neighborId = edge.Source.Id == otherId ? edge.Target.Id : edge.Source.Id;
-                if (nodeSet.Contains(neighborId))
-                {
-                    otherDegree += edge.Weight;
-                }
-            }
-
-            if (otherCommunity == targetCommunity)
-                targetCommunityTotal += otherDegree;
-            if (otherCommunity == currentCommunity)
-                currentCommunityTotal += otherDegree;
-        }
-
-        double m2 = 2.0 * totalEdgeWeight;
-
-        double deltaQ = _options.Resolution * (
-            (edgesToTarget - edgesToCurrent) / m2 +
-            (currentCommunityTotal - targetCommunityTotal - nodeDegree) * nodeDegree / (m2 * m2)
-        );
-
-        return deltaQ;
     }
 
     /// <summary>
