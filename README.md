@@ -2,8 +2,6 @@
 
 [![CI Build](https://github.com/elbruno/graphify-dotnet/actions/workflows/build.yml/badge.svg)](https://github.com/elbruno/graphify-dotnet/actions/workflows/build.yml)
 [![Publish](https://github.com/elbruno/graphify-dotnet/actions/workflows/publish.yml/badge.svg)](https://github.com/elbruno/graphify-dotnet/actions/workflows/publish.yml)
-[![NuGet](https://img.shields.io/nuget/v/graphify-dotnet.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet)
-[![Downloads](https://img.shields.io/nuget/dt/graphify-dotnet.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub stars](https://img.shields.io/github/stars/elbruno/graphify-dotnet?style=social)](https://github.com/elbruno/graphify-dotnet/stargazers)
 
@@ -66,6 +64,14 @@ cd graphify-dotnet
 dotnet build graphify-dotnet.slnx
 dotnet run --project src/Graphify.Cli -- run .
 ```
+
+## NuGet Packages
+
+| Package | Purpose | Version | Downloads |
+|---------|---------|---------|-----------|
+| [`graphify-dotnet`](https://www.nuget.org/packages/graphify-dotnet) | .NET global tool (`graphify`) | [![NuGet](https://img.shields.io/nuget/v/graphify-dotnet.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet) | [![Downloads](https://img.shields.io/nuget/dt/graphify-dotnet.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet) |
+| [`graphify-dotnet-core`](https://www.nuget.org/packages/graphify-dotnet-core) | Core graph extraction and pipeline library | [![NuGet](https://img.shields.io/nuget/v/graphify-dotnet-core.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet-core) | [![Downloads](https://img.shields.io/nuget/dt/graphify-dotnet-core.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet-core) |
+| [`graphify-dotnet-sdk`](https://www.nuget.org/packages/graphify-dotnet-sdk) | Copilot/AI SDK integration library | [![NuGet](https://img.shields.io/nuget/v/graphify-dotnet-sdk.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet-sdk) | [![Downloads](https://img.shields.io/nuget/dt/graphify-dotnet-sdk.svg?style=flat-square)](https://www.nuget.org/packages/graphify-dotnet-sdk) |
 
 ## Documentation
 
