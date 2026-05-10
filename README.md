@@ -88,6 +88,7 @@ dotnet run --project src/Graphify.Cli -- run .
 | &ensp; JSON | [docs/format-json.md](docs/format-json.md) |
 | &ensp; SVG | [docs/format-svg.md](docs/format-svg.md) |
 | &ensp; Neo4j Cypher | [docs/format-neo4j.md](docs/format-neo4j.md) |
+| &ensp; Ladybug | [docs/format-ladybug.md](docs/format-ladybug.md) |
 | &ensp; Obsidian Vault | [docs/format-obsidian.md](docs/format-obsidian.md) |
 | &ensp; Wiki | [docs/format-wiki.md](docs/format-wiki.md) |
 | &ensp; Report | [docs/format-report.md](docs/format-report.md) |

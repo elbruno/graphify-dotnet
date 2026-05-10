@@ -10,6 +10,7 @@
 | **JSON** | `graph.json` | Custom tools, CI pipelines, APIs | Programmatic | Developers, tooling |
 | **SVG** | `graph.svg` | Documentation, README embeds, print | Static | Everyone |
 | **Neo4j** | `graph.cypher` | Advanced queries, large datasets, analysis | Database queries | Analysts, power users |
+| **Ladybug** | `graph.ladybug.cypher` | Embedded local analytics, research | Database queries | Analysts, researchers |
 | **Obsidian** | `obsidian/` folder | Personal knowledge management | Note linking | Knowledge workers |
 | **Wiki** | `wiki/` folder | Team documentation, AI agents, onboarding | Browser navigation | Everyone |
 | **Report** | `GRAPH_REPORT.md` | Quick insights, architecture review | Reading | Everyone |
@@ -199,7 +200,20 @@ Cypher script for importing into Neo4j database.
 
 [Learn more →](format-neo4j.md)
 
-### 5. Obsidian Vault Export
+### 5. Ladybug Export
+
+**Produces:** `graph.ladybug.cypher`
+
+Ladybug-compatible Cypher script with structured DDL (`CREATE NODE TABLE`, `CREATE REL TABLE`) and native `MAP(STRING, STRING)` metadata storage.
+
+- ✅ Embedded database — no server required
+- ✅ Native `MAP` type for metadata (no JSON strings)
+- ✅ Columnar storage optimized for analytical queries
+- ✅ Structured schema with typed properties
+
+[Learn more →](format-ladybug.md)
+
+### 6. Obsidian Vault Export
 
 **Produces:** `obsidian/` folder
 
@@ -212,7 +226,7 @@ Personal knowledge management vault with interconnected notes.
 
 [Learn more →](format-obsidian.md)
 
-### 6. Wiki Export
+### 7. Wiki Export
 
 **Produces:** `wiki/` folder
 
@@ -225,7 +239,7 @@ Documentation site structure, agent-crawlable.
 
 [Learn more →](format-wiki.md)
 
-### 7. Graph Analysis Report
+### 8. Graph Analysis Report
 
 **Produces:** `GRAPH_REPORT.md`
 
@@ -245,7 +259,7 @@ There's no performance penalty for generating multiple formats in one run:
 
 ```bash
 # Fast and efficient — all generated in ~2 seconds
-graphify run ./src --format json,html,svg,neo4j,obsidian,wiki,report
+graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report
 ```
 
 **Recommended combinations:**
@@ -255,8 +269,9 @@ graphify run ./src --format json,html,svg,neo4j,obsidian,wiki,report
 | Quick start | `html, report` |
 | Documentation | `html, svg, report` |
 | Knowledge base | `obsidian, wiki, report` |
-| Analysis | `json, neo4j` |
-| Everything | `json, html, svg, neo4j, obsidian, wiki, report` |
+| Analysis | `json, neo4j, ladybug` |
+| Embedded analytics | `ladybug, report` |
+| Everything | `json, html, svg, neo4j, ladybug, obsidian, wiki, report` |
 
 ## Format Sizes
 
@@ -268,6 +283,7 @@ Approximate file/folder sizes for 1000-node graphs:
 | HTML | ~1 MB (self-contained) |
 | SVG | ~1 MB |
 | Neo4j Cypher | ~200 KB |
+| Ladybug Cypher | ~250 KB |
 | Obsidian | ~2 MB (many files) |
 | Wiki | ~3 MB (many files) |
 | Report | ~100 KB |
@@ -286,6 +302,9 @@ git add graph.json
 # Store folders for team collaboration
 git add obsidian/ wiki/
 
+# Store Ladybug script for embedded analytics
+git add graph.ladybug.cypher
+
 # Ignore HTML (it's static, can be regenerated)
 echo "graph.html" >> .gitignore
 ```
@@ -299,11 +318,11 @@ Update formats whenever code changes significantly:
 graphify run ./src
 
 # Full refresh (all formats)
-graphify run ./src --format json,html,svg,neo4j,obsidian,wiki,report
+graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report
 
 # In CI/CD: commit updated exports
 graphify run ./src
-git add graph.* GRAPH_REPORT.md obsidian/ wiki/
+git add graph.* GRAPH_REPORT.md obsidian/ wiki/ graph.ladybug.cypher
 git commit -m "chore: update architecture exports"
 git push
 ```
@@ -316,8 +335,9 @@ git push
 | SVG | Static (no interactivity) | Use HTML for exploration |
 | JSON | Requires programming knowledge | Use HTML or Report for browsing |
 | Neo4j | Requires Neo4j setup | Use HTML for quick exploration |
+| Ladybug | Requires Ladybug runtime to execute | Generate alongside Report for reading |
 | Obsidian | Requires Obsidian app | Use Wiki for browser access |
-| Wiki | Manual navigation (no DB queries) | Use Neo4j for complex analysis |
+| Wiki | Manual navigation (no DB queries) | Use Neo4j or Ladybug for complex analysis |
 | Report | Text only (no interaction) | Use HTML for exploration |
 
 ## See Also
@@ -326,6 +346,7 @@ git push
 - [JSON Graph Export](format-json.md)
 - [SVG Graph Export](format-svg.md)
 - [Neo4j Cypher Export](format-neo4j.md)
+- [Ladybug Export](format-ladybug.md)
 - [Obsidian Vault Export](format-obsidian.md)
 - [Wiki Export](format-wiki.md)
 - [Graph Analysis Report](format-report.md)

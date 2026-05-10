@@ -61,7 +61,8 @@ graphify-dotnet/
 │   │   ├── SvgExporter.cs          # graph.svg
 │   │   ├── WikiExporter.cs         # wiki/ markdown articles
 │   │   ├── ObsidianExporter.cs     # obsidian-vault/
-│   │   └── Neo4jExporter.cs        # cypher.txt or direct push
+│   │   ├── Neo4jExporter.cs        # cypher.txt or direct push
+│   │   └── LadybugExporter.cs      # graph.ladybug.cypher
 │   ├── Cache/                      # SHA256 caching
 │   │   ├── ICacheProvider.cs       # Cache interface
 │   │   ├── SemanticCache.cs        # File hash cache
@@ -303,6 +304,11 @@ public interface IGraphExporter
 #### Neo4jExporter
 - Generate `cypher.txt` with CREATE statements
 - Optional direct push via Bolt protocol
+
+#### LadybugExporter
+- Generate `graph.ladybug.cypher` with Ladybug-specific DDL (`CREATE NODE TABLE`, `CREATE REL TABLE`)
+- Metadata stored as native `MAP(STRING, STRING)` instead of JSON strings
+- Embedded database compatibility — no server required
 
 **Python Mapping**: `export.py`
 

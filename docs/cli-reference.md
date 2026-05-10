@@ -22,7 +22,7 @@ graphify run [path] [options]
 |-----------------|---------|-------------|
 | `path` | `.` | Path to the project to analyze |
 | `--output`, `-o` | `graphify-out` | Output directory |
-| `--format`, `-f` | `json,html,report` | Export formats (comma-separated) |
+| `--format`, `-f` | `json,html,report` | Export formats (comma-separated): `json`, `html`, `svg`, `neo4j`, `ladybug`, `obsidian`, `wiki`, `report` |
 | `--verbose`, `-v` | `false` | Enable detailed progress output |
 | `--provider`, `-p` | *(from config)* | AI provider: `azureopenai`, `ollama`, `copilotsdk` |
 | `--endpoint` | *(from config)* | AI service endpoint URL |
@@ -41,7 +41,7 @@ graphify run
 graphify run ./your-project
 
 # All export formats with verbose output
-graphify run . --format json,html,svg,neo4j,obsidian,wiki,report -v
+graphify run . --format json,html,svg,neo4j,ladybug,obsidian,wiki,report -v
 
 # Use Ollama locally
 graphify run . --provider ollama --model codellama
