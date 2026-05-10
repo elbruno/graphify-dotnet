@@ -103,6 +103,7 @@ public sealed class ExportIntegrationTests : IDisposable
             ("html", new HtmlExporter()),
             ("svg", new SvgExporter()),
             ("neo4j", new Neo4jExporter()),
+            ("ladybug", new LadybugExporter()),
         };
 
         // Act & Assert: file-based exporters
@@ -130,7 +131,7 @@ public sealed class ExportIntegrationTests : IDisposable
         Assert.True(Directory.Exists(wikiDir), "Wiki directory should exist");
         Assert.True(Directory.GetFiles(wikiDir, "*.md").Length > 0, "Wiki should contain .md files");
 
-        _output.WriteLine($"All 6 export formats succeeded");
+        _output.WriteLine($"All 7 export formats succeeded");
     }
 
     [Fact(Timeout = 30000)]

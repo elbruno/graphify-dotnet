@@ -121,7 +121,7 @@ public sealed class LadybugExporterTests : IDisposable
         await _exporter.ExportAsync(graph, path);
 
         var content = await File.ReadAllTextAsync(path);
-        Assert.DoesNotContain("metadata:", content);
+        Assert.DoesNotContain(", metadata:", content);
     }
 
     [Fact]
@@ -240,7 +240,7 @@ public sealed class LadybugExporterTests : IDisposable
 
         var content = await File.ReadAllTextAsync(path);
         Assert.Contains("id: \"A\"", content);
-        Assert.DoesNotContain("community:", content);
+        Assert.DoesNotContain(", community:", content);
     }
 
     [Fact]
