@@ -248,6 +248,13 @@ public sealed class PipelineRunner
                             await WriteLineAsync($"      Exported Neo4j Cypher: {cypherPath}");
                             break;
 
+                        case "ladybug":
+                            var ladybugExporter = new LadybugExporter();
+                            var ladybugPath = Path.Combine(outputDir, "graph.ladybug.cypher");
+                            await ladybugExporter.ExportAsync(graph, ladybugPath, cancellationToken);
+                            await WriteLineAsync($"      Exported Ladybug Cypher: {ladybugPath}");
+                            break;
+
                         case "obsidian":
                             var obsidianExporter = new ObsidianExporter();
                             var obsidianPath = Path.Combine(outputDir, "obsidian");
