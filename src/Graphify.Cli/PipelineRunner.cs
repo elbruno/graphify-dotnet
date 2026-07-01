@@ -15,6 +15,7 @@ public sealed class PipelineRunner
     private readonly TextWriter _output;
     private readonly bool _verbose;
     private readonly IChatClient? _chatClient;
+    private readonly SemaphoreSlim _outputLock = new(1, 1);
 
     public PipelineRunner(TextWriter output, bool verbose = false, IChatClient? chatClient = null)
     {
@@ -66,7 +67,9 @@ public sealed class PipelineRunner
             var extractionBag = new ConcurrentBag<ExtractionResult>();
             int processed = 0;
             int skipped = 0;
+            int completed = 0;
             var verboseWarnings = new ConcurrentQueue<string>();
+            var extractionProgressStep = Math.Max(1, detectedFiles.Count / 10);
 
             await Parallel.ForEachAsync(
                 detectedFiles,
@@ -89,10 +92,21 @@ public sealed class PipelineRunner
                         {
                             Interlocked.Increment(ref skipped);
                         }
+
+                        var finished = Interlocked.Increment(ref completed);
+                        if (ShouldReportProgress(finished, detectedFiles.Count, extractionProgressStep))
+                        {
+                            await WriteLineAsync($"      Progress: {finished}/{detectedFiles.Count} files analyzed");
+                        }
                     }
                     catch (Exception ex)
                     {
                         Interlocked.Increment(ref skipped);
+                        var finished = Interlocked.Increment(ref completed);
+                        if (ShouldReportProgress(finished, detectedFiles.Count, extractionProgressStep))
+                        {
+                            await WriteLineAsync($"      Progress: {finished}/{detectedFiles.Count} files analyzed");
+                        }
                         if (_verbose)
                         {
                             verboseWarnings.Enqueue($"      Warning: Failed to extract {file.RelativePath}: {ex.Message}");
@@ -118,6 +132,8 @@ public sealed class PipelineRunner
                 await WriteLineAsync("[2b/6] Running AI-enhanced semantic extraction...");
                 var semanticExtractor = new SemanticExtractor(_chatClient);
                 int semanticProcessed = 0;
+                int semanticCompleted = 0;
+                var semanticProgressStep = Math.Max(1, detectedFiles.Count / 10);
 
                 foreach (var file in detectedFiles)
                 {
@@ -135,6 +151,12 @@ public sealed class PipelineRunner
                     {
                         if (_verbose)
                             await WriteLineAsync($"      Warning: Semantic extraction failed for {file.RelativePath}: {ex.Message}");
+                    }
+
+                    var finished = ++semanticCompleted;
+                    if (ShouldReportProgress(finished, detectedFiles.Count, semanticProgressStep))
+                    {
+                        await WriteLineAsync($"      Progress: {finished}/{detectedFiles.Count} files semantically analyzed");
                     }
                 }
 
@@ -333,7 +355,20 @@ public sealed class PipelineRunner
 
     private async Task WriteLineAsync(string message = "")
     {
-        await _output.WriteLineAsync(message);
+        await _outputLock.WaitAsync();
+        try
+        {
+            await _output.WriteLineAsync(message);
+        }
+        finally
+        {
+            _outputLock.Release();
+        }
+    }
+
+    private static bool ShouldReportProgress(int completed, int total, int step)
+    {
+        return completed == total || completed % step == 0;
     }
 
     private static Dictionary<int, string> BuildCommunityLabels(KnowledgeGraph graph)

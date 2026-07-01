@@ -72,4 +72,34 @@ public class PipelineRunnerTests
             try { if (Directory.Exists(tempOutput)) Directory.Delete(tempOutput, recursive: true); } catch { /* best-effort cleanup */ }
         }
     }
+
+    [Fact]
+    [Trait("Category", "Cli")]
+    public async Task RunAsync_ReportsFileProgressDuringExtraction()
+    {
+        var tempInput = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        var tempOutput = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(tempInput);
+
+        try
+        {
+            await File.WriteAllTextAsync(Path.Combine(tempInput, "alpha.cs"), "namespace Demo; public sealed class Alpha { }");
+            await File.WriteAllTextAsync(Path.Combine(tempInput, "beta.cs"), "namespace Demo; public sealed class Beta { }");
+
+            var sb = new StringBuilder();
+            await using var writer = new StringWriter(sb);
+            var runner = new PipelineRunner(writer, verbose: false);
+
+            await runner.RunAsync(tempInput, tempOutput, formats: ["json"], useCache: false);
+
+            var log = sb.ToString();
+            Assert.Contains("Progress:", log, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("2/2", log, StringComparison.OrdinalIgnoreCase);
+        }
+        finally
+        {
+            try { Directory.Delete(tempInput, recursive: true); } catch { /* best-effort cleanup */ }
+            try { if (Directory.Exists(tempOutput)) Directory.Delete(tempOutput, recursive: true); } catch { /* best-effort cleanup */ }
+        }
+    }
 }
