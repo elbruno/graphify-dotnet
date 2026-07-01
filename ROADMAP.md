@@ -82,9 +82,9 @@ The .NET AI landscape has matured rapidly:
 
 #### 3.1 `dotnet tool` Global Install
 
-- **Description:** Package Graphify.Cli as a global .NET tool so users can install with `dotnet tool install -g graphify` and run with just `graphify run .`
+- **Description:** Package Graphify.Cli as a global .NET tool so users can install with `dotnet tool install -g graphify-dotnet` and run with just `graphify run`.
 - **Rationale:** Eliminates the clone-and-build workflow. The Python version is on PyPI (`pip install graphifyy`); we need parity. Global tools are the standard .NET distribution mechanism for CLI apps.
-- **How:** Add `<PackAsTool>true</PackAsTool>` and `<ToolCommandName>graphify</ToolCommandName>` to Graphify.Cli.csproj. Consider Native AOT for self-contained packaging.
+- **How:** Add `<PackAsTool>true</PackAsTool>` and `<ToolCommandName>graphify</ToolCommandName>` to Graphify.Cli.csproj. Users would install it with `dotnet tool install -g graphify-dotnet` and run `graphify run`. Consider Native AOT for self-contained packaging.
 - **Difficulty:** Easy
 - **Priority:** High
 
@@ -110,6 +110,32 @@ The .NET AI landscape has matured rapidly:
 - **Rationale:** The Python version already has this. For large codebases, full re-extraction is expensive (time + tokens). SHA256 caching infrastructure already exists in our pipeline — this builds on it.
 - **How:** Use `FileSystemWatcher` to detect changes. Leverage existing SHA256 cache to identify changed files. Re-run extraction only for modified files, then merge into existing graph.
 - **Difficulty:** Medium
+- **Priority:** High
+
+#### 3.4a Long-Running Process Observability & Logging
+
+- **Description:** Add richer progress logging for the full pipeline and watch mode so users can see where time is being spent during long-running operations.
+- **Rationale:** `PipelineRunner` currently prints stage names and aggregate counts, but it does not report per-stage duration, throughput, retries/skips over time, or heartbeat updates while extraction and AI enrichment are still running. `WatchMode` reports changed files, but not how long debounce, re-detection, extraction, merge, clustering, or export took. This makes it hard to distinguish "still working" from "stuck," especially on large repositories or when AI-backed semantic extraction is enabled.
+- **Logging Goals:**
+  1. **Stage timing** — emit elapsed time for detect, extract, semantic extract, graph build, cluster, analyze, and each export format.
+  2. **Heartbeat progress** — during long loops, print periodic progress updates (for example every N files or every few seconds) with processed/skipped counts and current stage.
+  3. **Throughput insights** — include files/sec, nodes/edges extracted, and average time per file so large-repo runs can be compared.
+  4. **Watch-mode diagnostics** — record debounce batches, changed-file counts, unchanged-file drops, incremental merge duration, and export duration after each update cycle.
+  5. **Failure visibility** — summarize warnings by category (extract failures, AI failures, export failures) without requiring stack traces unless `--verbose` is enabled.
+- **How:**
+  - Introduce lightweight timing around each pipeline stage (for example `Stopwatch`) while preserving the current user-friendly console output.
+  - Add a shared progress reporter so both `PipelineRunner` and `WatchMode` can emit consistent messages instead of ad-hoc `WriteLineAsync` calls.
+  - Keep the default output concise, then let `--verbose` unlock per-file details, periodic heartbeats, and warning breakdowns.
+  - Keep structured/diagnostic output compatible with a future `ILogger` or OpenTelemetry bridge so this work can later feed the planned Aspire dashboard instead of being console-only.
+- **Suggested Rollout:**
+  1. **Phase 1 — Timings:** add elapsed-time summaries to existing stage boundaries and watch-mode update cycles.
+  2. **Phase 2 — Heartbeats:** add periodic progress logs inside AST extraction and semantic extraction loops.
+  3. **Phase 3 — Structured diagnostics:** centralize logging fields (stage, elapsed, file count, warning count) for reuse in CLI, MCP, and future telemetry integrations.
+- **Success Criteria:**
+  - A user can identify the slowest stage of `graphify run` from one console session.
+  - A long watch-mode refresh shows whether time was spent in debounce, extraction, clustering, or export.
+  - Verbose mode gives enough detail to troubleshoot slow runs without attaching a debugger.
+- **Difficulty:** Easy
 - **Priority:** High
 
 ---
