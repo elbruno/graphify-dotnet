@@ -82,9 +82,9 @@ The .NET AI landscape has matured rapidly:
 
 #### 3.1 `dotnet tool` Global Install
 
-- **Description:** Package Graphify.Cli as a global .NET tool so users can install with `dotnet tool install -g graphify` and run with just `graphify run .`
+- **Description:** Package Graphify.Cli as a global .NET tool so users can install with `dotnet tool install -g graphify-dotnet` and run with just `graphify run`.
 - **Rationale:** Eliminates the clone-and-build workflow. The Python version is on PyPI (`pip install graphifyy`); we need parity. Global tools are the standard .NET distribution mechanism for CLI apps.
-- **How:** Add `<PackAsTool>true</PackAsTool>` and `<ToolCommandName>graphify</ToolCommandName>` to Graphify.Cli.csproj. Consider Native AOT for self-contained packaging.
+- **How:** Add `<PackAsTool>true</PackAsTool>` and `<ToolCommandName>graphify</ToolCommandName>` to Graphify.Cli.csproj. Users would install it with `dotnet tool install -g graphify-dotnet` and run `graphify run`. Consider Native AOT for self-contained packaging.
 - **Difficulty:** Easy
 - **Priority:** High
 
