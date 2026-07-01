@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Graphify.Export;
 using Graphify.Graph;
 using Graphify.Models;
@@ -33,12 +34,15 @@ public sealed class PipelineRunner
     {
         try
         {
+            var pipelineStopwatch = Stopwatch.StartNew();
             await WriteLineAsync("graphify-dotnet: Transform codebases into knowledge graphs");
             await WriteLineAsync(new string('─', 60));
+            await WriteLineAsync($"Started at: {DateTimeOffset.Now:HH:mm:ss}");
             await WriteLineAsync();
 
             // Stage 1: Detect files
             await WriteLineAsync("[1/6] Detecting files...");
+            var detectStopwatch = Stopwatch.StartNew();
             var fileDetector = new FileDetector();
             var detectorOptions = new FileDetectorOptions(
                 RootPath: inputPath,
@@ -48,6 +52,7 @@ public sealed class PipelineRunner
 
             var detectedFiles = await fileDetector.ExecuteAsync(detectorOptions, cancellationToken);
             await WriteLineAsync($"      Found {detectedFiles.Count} files to process");
+            await WriteLineAsync($"      Detection completed in {FormatElapsed(detectStopwatch.Elapsed)}");
             if (_verbose)
             {
                 foreach (var file in detectedFiles.Take(5))
@@ -68,6 +73,7 @@ public sealed class PipelineRunner
             int processed = 0;
             int skipped = 0;
             int completed = 0;
+            var extractionStopwatch = Stopwatch.StartNew();
             var verboseWarnings = new ConcurrentQueue<string>();
             var extractionProgressStep = Math.Max(1, detectedFiles.Count / 10);
 
@@ -124,19 +130,22 @@ public sealed class PipelineRunner
             var totalNodes = extractionResults.Sum(r => r.Nodes.Count);
             var totalEdges = extractionResults.Sum(r => r.Edges.Count);
             await WriteLineAsync($"      Extracted {totalNodes} nodes, {totalEdges} edges");
+            await WriteLineAsync($"      Extraction completed in {FormatElapsed(extractionStopwatch.Elapsed)}");
             await WriteLineAsync();
 
             // Stage 2b: AI-enhanced semantic extraction (if provider configured)
             if (_chatClient != null)
             {
                 await WriteLineAsync("[2b/6] Running AI-enhanced semantic extraction...");
+                var semanticStopwatch = Stopwatch.StartNew();
                 var semanticExtractor = new SemanticExtractor(_chatClient);
                 int semanticProcessed = 0;
                 int semanticCompleted = 0;
                 var semanticProgressStep = Math.Max(1, detectedFiles.Count / 10);
 
-                foreach (var file in detectedFiles)
+                for (var index = 0; index < detectedFiles.Count; index++)
                 {
+                    var file = detectedFiles[index];
                     cancellationToken.ThrowIfCancellationRequested();
                     try
                     {
@@ -164,6 +173,7 @@ public sealed class PipelineRunner
                 totalNodes = extractionResults.Sum(r => r.Nodes.Count);
                 totalEdges = extractionResults.Sum(r => r.Edges.Count);
                 await WriteLineAsync($"      Total: {totalNodes} nodes, {totalEdges} edges (AST + AI)");
+                await WriteLineAsync($"      Semantic extraction completed in {FormatElapsed(semanticStopwatch.Elapsed)}");
                 await WriteLineAsync();
             }
             else
@@ -175,6 +185,7 @@ public sealed class PipelineRunner
 
             // Stage 3: Build graph
             await WriteLineAsync("[3/6] Building knowledge graph...");
+            var graphBuildStopwatch = Stopwatch.StartNew();
             var graphBuilder = new GraphBuilder(new GraphBuilderOptions
             {
                 CreateFileNodes = true,
@@ -183,10 +194,12 @@ public sealed class PipelineRunner
             });
             var graph = await graphBuilder.ExecuteAsync(extractionResults, cancellationToken);
             await WriteLineAsync($"      Graph: {graph.NodeCount} nodes, {graph.EdgeCount} edges");
+            await WriteLineAsync($"      Graph build completed in {FormatElapsed(graphBuildStopwatch.Elapsed)}");
             await WriteLineAsync();
 
             // Stage 4: Detect communities (clustering)
             await WriteLineAsync("[4/6] Detecting communities...");
+            var clusterStopwatch = Stopwatch.StartNew();
             var clusterEngine = new ClusterEngine(new ClusterOptions
             {
                 MaxIterations = 100,
@@ -201,10 +214,12 @@ public sealed class PipelineRunner
                 .Distinct()
                 .Count();
             await WriteLineAsync($"      Found {communityCount} communities");
+            await WriteLineAsync($"      Clustering completed in {FormatElapsed(clusterStopwatch.Elapsed)}");
             await WriteLineAsync();
 
             // Stage 5: Analyze graph
             await WriteLineAsync("[5/6] Analyzing graph structure...");
+            var analysisStopwatch = Stopwatch.StartNew();
             var analyzer = new Analyzer(new AnalyzerOptions
             {
                 TopGodNodesCount = 10,
@@ -215,6 +230,7 @@ public sealed class PipelineRunner
             await WriteLineAsync($"      God nodes: {analysis.GodNodes.Count}");
             await WriteLineAsync($"      Surprising connections: {analysis.SurprisingConnections.Count}");
             await WriteLineAsync($"      Suggested questions: {analysis.SuggestedQuestions.Count}");
+            await WriteLineAsync($"      Analysis completed in {FormatElapsed(analysisStopwatch.Elapsed)}");
             await WriteLineAsync();
 
             // Prepare community labels and cohesion scores for report and exports
@@ -223,6 +239,7 @@ public sealed class PipelineRunner
 
             // Stage 6: Export
             await WriteLineAsync("[6/6] Exporting results...");
+            var exportStopwatch = Stopwatch.StartNew();
 
             // Validate output directory to prevent path traversal
             var validator = new Graphify.Security.InputValidator();
@@ -238,6 +255,7 @@ public sealed class PipelineRunner
             {
                 try
                 {
+                    var formatStopwatch = Stopwatch.StartNew();
                     var normalizedFormat = format.ToLowerInvariant();
 
                     switch (normalizedFormat)
@@ -246,49 +264,49 @@ public sealed class PipelineRunner
                             var jsonExporter = new JsonExporter();
                             var jsonPath = Path.Combine(outputDir, "graph.json");
                             await jsonExporter.ExportAsync(graph, jsonPath, cancellationToken);
-                            await WriteLineAsync($"      Exported JSON: {jsonPath}");
+                            await WriteLineAsync($"      Exported JSON: {jsonPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "html":
                             var htmlExporter = new HtmlExporter();
                             var htmlPath = Path.Combine(outputDir, "graph.html");
                             await htmlExporter.ExportAsync(graph, htmlPath, communityLabels, cancellationToken);
-                            await WriteLineAsync($"      Exported HTML: {htmlPath}");
+                            await WriteLineAsync($"      Exported HTML: {htmlPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "svg":
                             var svgExporter = new SvgExporter();
                             var svgPath = Path.Combine(outputDir, "graph.svg");
                             await svgExporter.ExportAsync(graph, svgPath, cancellationToken);
-                            await WriteLineAsync($"      Exported SVG: {svgPath}");
+                            await WriteLineAsync($"      Exported SVG: {svgPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "neo4j":
                             var neo4jExporter = new Neo4jExporter();
                             var cypherPath = Path.Combine(outputDir, "graph.cypher");
                             await neo4jExporter.ExportAsync(graph, cypherPath, cancellationToken);
-                            await WriteLineAsync($"      Exported Neo4j Cypher: {cypherPath}");
+                            await WriteLineAsync($"      Exported Neo4j Cypher: {cypherPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "ladybug":
                             var ladybugExporter = new LadybugExporter();
                             var ladybugPath = Path.Combine(outputDir, "graph.ladybug.cypher");
                             await ladybugExporter.ExportAsync(graph, ladybugPath, cancellationToken);
-                            await WriteLineAsync($"      Exported Ladybug Cypher: {ladybugPath}");
+                            await WriteLineAsync($"      Exported Ladybug Cypher: {ladybugPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "obsidian":
                             var obsidianExporter = new ObsidianExporter();
                             var obsidianPath = Path.Combine(outputDir, "obsidian");
                             await obsidianExporter.ExportAsync(graph, obsidianPath, cancellationToken);
-                            await WriteLineAsync($"      Exported Obsidian vault: {obsidianPath}/");
+                            await WriteLineAsync($"      Exported Obsidian vault: {obsidianPath}/{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "wiki":
                             var wikiExporter = new WikiExporter();
                             var wikiPath = Path.Combine(outputDir, "wiki");
                             await wikiExporter.ExportAsync(graph, wikiPath, cancellationToken);
-                            await WriteLineAsync($"      Exported Wiki: {wikiPath}/");
+                            await WriteLineAsync($"      Exported Wiki: {wikiPath}/{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         case "report":
@@ -297,7 +315,7 @@ public sealed class PipelineRunner
                             var reportMarkdown = reportGenerator.Generate(graph, analysis, communityLabels, cohesionScores, projectName);
                             var reportPath = Path.Combine(outputDir, "GRAPH_REPORT.md");
                             await File.WriteAllTextAsync(reportPath, reportMarkdown, cancellationToken);
-                            await WriteLineAsync($"      Exported Report: {reportPath}");
+                            await WriteLineAsync($"      Exported Report: {reportPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
                         default:
@@ -310,9 +328,11 @@ public sealed class PipelineRunner
                     await WriteLineAsync($"      Error exporting {format}: {ex.Message}");
                 }
             }
+            await WriteLineAsync($"      Export stage completed in {FormatElapsed(exportStopwatch.Elapsed)}");
 
             await WriteLineAsync();
             await WriteLineAsync("✓ Pipeline completed successfully");
+            await WriteLineAsync($"Total runtime: {FormatElapsed(pipelineStopwatch.Elapsed)}");
             await WriteLineAsync();
 
             // Print summary
@@ -369,6 +389,18 @@ public sealed class PipelineRunner
     private static bool ShouldReportProgress(int completed, int total, int step)
     {
         return completed == total || completed % step == 0;
+    }
+
+    private static string FormatElapsed(TimeSpan elapsed)
+    {
+        return elapsed.TotalSeconds >= 1
+            ? $"{elapsed.TotalSeconds:F2}s"
+            : $"{elapsed.TotalMilliseconds:F0}ms";
+    }
+
+    private string FormatWithElapsed(TimeSpan elapsed)
+    {
+        return _verbose ? $" ({FormatElapsed(elapsed)})" : string.Empty;
     }
 
     private static Dictionary<int, string> BuildCommunityLabels(KnowledgeGraph graph)

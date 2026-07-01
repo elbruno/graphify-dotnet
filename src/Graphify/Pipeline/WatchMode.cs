@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Graphify.Cache;
 using Graphify.Export;
 using Graphify.Graph;
@@ -127,6 +128,7 @@ public sealed class WatchMode : IDisposable
 
         try
         {
+            var updateStopwatch = Stopwatch.StartNew();
             // Filter to files that actually changed content (via SHA256)
             var trulyChanged = new List<string>();
             foreach (var filePath in changedPaths)
@@ -146,6 +148,11 @@ public sealed class WatchMode : IDisposable
                 {
                     trulyChanged.Add(filePath); // can't check → treat as changed
                 }
+            }
+
+            if (_verbose)
+            {
+                await _output.WriteLineAsync($"  Scanned {changedPaths.Count} path(s) in {FormatElapsed(updateStopwatch.Elapsed)}");
             }
 
             if (trulyChanged.Count == 0)
@@ -173,7 +180,12 @@ public sealed class WatchMode : IDisposable
                 MaxFileSizeBytes: 1024 * 1024,
                 RespectGitIgnore: true);
 
+            var detectStopwatch = Stopwatch.StartNew();
             var allDetected = await fileDetector.ExecuteAsync(options, ct);
+            if (_verbose)
+            {
+                await _output.WriteLineAsync($"  Re-detected {allDetected.Count} file(s) in {FormatElapsed(detectStopwatch.Elapsed)}");
+            }
 
             // Filter to changed files only
             var changedSet = new HashSet<string>(trulyChanged, StringComparer.OrdinalIgnoreCase);
@@ -190,6 +202,8 @@ public sealed class WatchMode : IDisposable
             var newResults = new List<ExtractionResult>();
             var progressStep = Math.Max(1, filesToProcess.Count / 10);
             var completed = 0;
+            var extractStopwatch = Stopwatch.StartNew();
+            var extracted = 0;
             foreach (var file in filesToProcess)
             {
                 ct.ThrowIfCancellationRequested();
@@ -197,7 +211,10 @@ public sealed class WatchMode : IDisposable
                 {
                     var result = await extractor.ExecuteAsync(file, ct);
                     if (result.Nodes.Count > 0 || result.Edges.Count > 0)
+                    {
                         newResults.Add(result);
+                        extracted++;
+                    }
                 }
                 catch (Exception ex)
                 {
@@ -206,9 +223,10 @@ public sealed class WatchMode : IDisposable
                 }
 
                 completed++;
-                if (completed == filesToProcess.Count || completed % progressStep == 0)
+                if (ShouldReportProgress(completed, filesToProcess.Count, progressStep))
                 {
-                    await _output.WriteLineAsync($"  Progress: {completed}/{filesToProcess.Count} changed files analyzed");
+                    await _output.WriteLineAsync(
+                        $"  Progress: {completed}/{filesToProcess.Count} changed files analyzed ({extracted} produced output, {FormatElapsed(extractStopwatch.Elapsed)})");
                 }
             }
 
@@ -226,10 +244,16 @@ public sealed class WatchMode : IDisposable
                 MergeStrategy = MergeStrategy.MostRecent
             });
 
+            var buildStopwatch = Stopwatch.StartNew();
             var incrementalGraph = await graphBuilder.ExecuteAsync(newResults, ct);
             _currentGraph!.MergeGraph(incrementalGraph);
+            if (_verbose)
+            {
+                await _output.WriteLineAsync($"  Graph merge completed in {FormatElapsed(buildStopwatch.Elapsed)}");
+            }
 
             // Re-cluster
+            var clusterStopwatch = Stopwatch.StartNew();
             var clusterEngine = new ClusterEngine(new ClusterOptions
             {
                 MaxIterations = 100,
@@ -238,8 +262,13 @@ public sealed class WatchMode : IDisposable
                 MaxCommunityFraction = 0.2
             });
             _currentGraph = await clusterEngine.ExecuteAsync(_currentGraph, ct);
+            if (_verbose)
+            {
+                await _output.WriteLineAsync($"  Re-clustering completed in {FormatElapsed(clusterStopwatch.Elapsed)}");
+            }
 
             // Re-export
+            var exportStopwatch = Stopwatch.StartNew();
             Directory.CreateDirectory(outputDir);
             foreach (var format in formats)
             {
@@ -254,9 +283,14 @@ public sealed class WatchMode : IDisposable
                         break;
                 }
             }
+            if (_verbose)
+            {
+                await _output.WriteLineAsync($"  Export completed in {FormatElapsed(exportStopwatch.Elapsed)}");
+            }
 
             await _output.WriteLineAsync($"  Re-processed {newResults.Count} file(s) → {_currentGraph.NodeCount} nodes, {_currentGraph.EdgeCount} edges");
             await _output.WriteLineAsync($"  Exported to {outputDir}");
+            await _output.WriteLineAsync($"  Incremental update total time: {FormatElapsed(updateStopwatch.Elapsed)}");
             await _output.WriteLineAsync();
         }
         catch (OperationCanceledException)
@@ -280,5 +314,17 @@ public sealed class WatchMode : IDisposable
         _watcher.EnableRaisingEvents = false;
         _watcher.Dispose();
         _processLock.Dispose();
+    }
+
+    private static string FormatElapsed(TimeSpan elapsed)
+    {
+        return elapsed.TotalSeconds >= 1
+            ? $"{elapsed.TotalSeconds:F2}s"
+            : $"{elapsed.TotalMilliseconds:F0}ms";
+    }
+
+    private static bool ShouldReportProgress(int completed, int total, int step)
+    {
+        return completed == total || completed % step == 0;
     }
 }
