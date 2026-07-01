@@ -188,6 +188,8 @@ public sealed class WatchMode : IDisposable
             // Extract
             var extractor = new Extractor();
             var newResults = new List<ExtractionResult>();
+            var progressStep = Math.Max(1, filesToProcess.Count / 10);
+            var completed = 0;
             foreach (var file in filesToProcess)
             {
                 ct.ThrowIfCancellationRequested();
@@ -201,6 +203,12 @@ public sealed class WatchMode : IDisposable
                 {
                     if (_verbose)
                         await _output.WriteLineAsync($"  Warning: extraction failed for {file.RelativePath}: {ex.Message}");
+                }
+
+                completed++;
+                if (completed == filesToProcess.Count || completed % progressStep == 0)
+                {
+                    await _output.WriteLineAsync($"  Progress: {completed}/{filesToProcess.Count} changed files analyzed");
                 }
             }
 
