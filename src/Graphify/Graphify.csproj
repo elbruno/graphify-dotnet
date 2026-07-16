@@ -23,6 +23,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.AI" Version="10.*" />
     <PackageReference Include="QuikGraph" Version="2.*" />
+    <PackageReference Include="surrealdb.net" Version="0.*" />
     <PackageReference Include="TreeSitter.Bindings" Version="0.*" />
   </ItemGroup>
 

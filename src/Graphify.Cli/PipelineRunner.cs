@@ -318,6 +318,13 @@ public sealed class PipelineRunner
                             await WriteLineAsync($"      Exported Report: {reportPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
                             break;
 
+                        case "surrealdb":
+                            var surrealDbExporter = new SurrealDbExporter();
+                            var surrealDbPath = Path.Combine(outputDir, "codebase.db");
+                            await surrealDbExporter.ExportAsync(graph, surrealDbPath, cancellationToken);
+                            await WriteLineAsync($"      Exported SurrealDB: {surrealDbPath}{FormatWithElapsed(formatStopwatch.Elapsed)}");
+                            break;
+
                         default:
                             await WriteLineAsync($"      Warning: Unknown format '{normalizedFormat}' - skipped");
                             break;
