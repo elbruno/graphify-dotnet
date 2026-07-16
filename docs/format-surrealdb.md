@@ -24,12 +24,25 @@ graphify run ./src --format surrealdb
 
 Connect to any SurrealDB instance over HTTP or WebSocket.
 
-```bash
+**PowerShell:**
+
+```powershell
 graphify run ./src --format surrealdb `
     --surreal-endpoint http://localhost:8000 `
     --surreal-user root `
     --surreal-pass mypassword `
     --surreal-ns graphify `
+    --surreal-db codebase
+```
+
+**Bash:**
+
+```bash
+graphify run ./src --format surrealdb \
+    --surreal-endpoint http://localhost:8000 \
+    --surreal-user root \
+    --surreal-pass mypassword \
+    --surreal-ns graphify \
     --surreal-db codebase
 ```
 

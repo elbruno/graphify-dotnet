@@ -20,7 +20,7 @@ graphify-dotnet/
 │   ├── Graphify/                # Core library (graph pipeline, data structures, export)
 │   ├── Graphify.Cli/            # CLI tool (System.CommandLine)
 │   ├── Graphify.Sdk/            # GitHub Copilot SDK integration
-│   ├── Graphify.Mcp/            # MCP stdio server
+│   ├── Graphify.Cli/Mcp/        # MCP server built into CLI
 │   └── tests/
 │       ├── Graphify.Tests/              # Unit tests (xUnit)
 │       └── Graphify.Integration.Tests/  # Integration tests
@@ -48,7 +48,7 @@ graphify-dotnet/
 - `src/Graphify/` — Core library (graph pipeline, data structures, export)
 - `src/Graphify.Cli/` — CLI tool (dotnet tool, System.CommandLine)
 - `src/Graphify.Sdk/` — GitHub Copilot SDK integration
-- `src/Graphify.Mcp/` — MCP stdio server (ModelContextProtocol)
+- `src/Graphify.Cli/Mcp/` — MCP server built into the CLI (ModelContextProtocol)
 - `src/tests/Graphify.Tests/` — Unit tests (xUnit)
 - `src/tests/Graphify.Integration.Tests/` — Integration tests
 
@@ -68,7 +68,7 @@ graphify-dotnet/
 
 ### Library / Application Projects
 - Target `net10.0` only (single target — this is a .NET 10 project, not multi-target)
-- Project naming: `Graphify`, `Graphify.Cli`, `Graphify.Sdk`, `Graphify.Mcp`
+- Project naming: `Graphify`, `Graphify.Cli`, `Graphify.Sdk`
 - Enable deterministic CI builds: `<ContinuousIntegrationBuild Condition="'$(GITHUB_ACTIONS)' == 'true'">true</ContinuousIntegrationBuild>`
 - Include `<InternalsVisibleTo>` for the corresponding test project where needed
 - `Graphify.Cli` includes `<PackAsTool>true</PackAsTool>` for NuGet dotnet-tool publishing

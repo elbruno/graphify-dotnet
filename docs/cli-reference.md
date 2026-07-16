@@ -133,23 +133,31 @@ graphify config folder
 
 See [Configuration](configuration.md) for details on the layered config system.
 
-## MCP Server
+## `graphify serve`
 
-The `src/Graphify.Mcp/` project is a standalone MCP server that loads a pre-built `graph.json` and exposes it to AI assistants. It is not a CLI subcommand — run it directly:
+Serve the knowledge graph over MCP (Model Context Protocol) — AI assistants query it via stdio.
 
 ```bash
-# From source
-dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
-
-# Or build once
-dotnet publish src/Graphify.Mcp -o ./mcp-server
-./mcp-server/Graphify.Mcp graphify-out/graph.json --verbose
+graphify serve [graph-path] [options]
 ```
 
 | Argument | Default | Description |
 |----------|---------|-------------|
-| `graph-path` | `graph.json` | Path to the graph JSON file |
-| `--verbose`, `-v` | `false` | Enable detailed logging |
+| `graph-path` | `graphify-out/graph.json` | Path to the graph JSON file |
+| `--verbose`, `-v` | `false` | Enable detailed logging to stderr |
+
+### Examples
+
+```bash
+# Serve the default output
+graphify serve
+
+# Serve a specific graph file with verbose logging
+graphify serve ./my-project/graph.json --verbose
+
+# When running from source
+dotnet run --project src/Graphify.Cli -- serve graphify-out/graph.json
+```
 
 See [MCP Server](mcp-server.md) for client configuration and tool reference.
 

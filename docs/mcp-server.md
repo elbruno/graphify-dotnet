@@ -4,7 +4,7 @@
 
 ## Overview
 
-The MCP (Model Context Protocol) server loads a pre-built graph from its JSON export and exposes it as 5 tools. AI assistants connect over stdio and query the graph as if it were a live database — no HTTP server, no separate daemon.
+The MCP (Model Context Protocol) server is built into the CLI as `graphify serve`. It loads a pre-built graph from its JSON export and exposes it as 5 tools. AI assistants connect over stdio and query the graph as if it were a live database — no HTTP server, no separate daemon.
 
 ```
 ┌─────────────────┐     ┌──────────────────────────┐
@@ -32,19 +32,20 @@ graphify run ./my-project --format json
 ### Step 2: Run the MCP server
 
 ```bash
-dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
+graphify serve graphify-out/graph.json
 ```
 
-Or build once and run the binary directly:
+For verbose logging:
 
 ```bash
-dotnet publish src/Graphify.Mcp -o ./mcp-server
-./mcp-server/Graphify.Mcp graphify-out/graph.json
+graphify serve graphify-out/graph.json --verbose
 ```
 
-The server no output on success — all logging goes to stderr, stdout is reserved for JSON-RPC protocol messages.
+The server outputs no messages on success — all logging goes to stderr, stdout is reserved for JSON-RPC protocol messages.
 
 ### Step 3: Connect your AI assistant
+
+If the `graphify` global tool is installed, most MCP clients can reference it directly:
 
 **Claude Desktop** — add to your `claude_desktop_config.json`:
 
@@ -52,14 +53,8 @@ The server no output on success — all logging goes to stderr, stdout is reserv
 {
   "mcpServers": {
     "graphify": {
-      "command": "dotnet",
-      "args": [
-        "run",
-        "--project",
-        "/path/to/graphify-dotnet/src/Graphify.Mcp",
-        "--",
-        "/path/to/your/graph.json"
-      ]
+      "command": "graphify",
+      "args": ["serve", "/path/to/your/graph.json"]
     }
   }
 }
@@ -72,15 +67,25 @@ The server no output on success — all logging goes to stderr, stdout is reserv
   "servers": {
     "graphify": {
       "type": "stdio",
+      "command": "graphify",
+      "args": ["serve", "/path/to/your/graph.json"],
+      "description": "Knowledge graph for my codebase"
+    }
+  }
+}
+```
+
+When running from source:
+
+```json
+{
+  "mcpServers": {
+    "graphify": {
       "command": "dotnet",
       "args": [
-        "run",
-        "--project",
-        "/path/to/graphify-dotnet/src/Graphify.Mcp",
-        "--",
-        "/path/to/your/graph.json"
-      ],
-      "description": "Knowledge graph for my codebase"
+        "run", "--project", "/path/to/graphify-dotnet/src/Graphify.Cli",
+        "--", "serve", "/path/to/your/graph.json"
+      ]
     }
   }
 }
@@ -153,17 +158,17 @@ Returns node/edge counts, community count, average degree, isolated nodes, top-N
 ## CLI Options
 
 ```bash
-Graphify.Mcp <graph-path> [--verbose]
+graphify serve [graph-path] [options]
 ```
 
-| Argument | Description |
-|----------|-------------|
-| `graph-path` | Path to the `graph.json` file (default: `graph.json`) |
-| `--verbose`, `-v` | Enable detailed logging (node/edge counts, load progress) |
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `graph-path` | `graphify-out/graph.json` | Path to the graph JSON file |
+| `--verbose`, `-v` | `false` | Enable detailed logging to stderr |
 
 ## Architecture
 
-The server uses the `ModelContextProtocol` SDK with stdio transport. All JSON-RPC messages flow over stdout; logging goes exclusively to stderr. Tools are auto-discovered via `[McpServerTool]` attributes on the `GraphTools` class.
+The server is part of the `Graphify.Cli` project and uses the `ModelContextProtocol` SDK with stdio transport. All JSON-RPC messages flow over stdout; logging goes exclusively to stderr. Tools are auto-discovered via `[McpServerTool]` attributes on the `GraphTools` class.
 
 Sequence on startup:
 
@@ -177,11 +182,11 @@ The server is read-only — it does not run pipeline stages, trigger re-extracti
 
 ## Integration with CI/CD
 
-Regenerate the graph and restart the server on each build:
+Regenerate the graph and serve after each build:
 
 ```bash
 graphify run ./src --format json
-dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
+graphify serve graphify-out/graph.json --verbose
 ```
 
 ## See Also

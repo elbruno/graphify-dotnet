@@ -213,7 +213,7 @@ The analysis report we walked through above — god nodes, communities, surprisi
 The MCP server loads `graph.json` and exposes it as tools for AI assistants. Start it:
 
 ```bash
-dotnet run --project src/Graphify.Mcp -- samples/mini-library/graphify-out/graph.json
+graphify serve samples/mini-library/graphify-out/graph.json
 ```
 
 Then connect Claude Desktop or VS Code and ask questions:

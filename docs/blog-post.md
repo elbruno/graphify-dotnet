@@ -70,7 +70,7 @@ The HTML export gives you an interactive vis.js graph. Click nodes, search by co
 ```bash
 # Build the graph first, then run the MCP server
 dotnet run --project src/Graphify.Cli -- run . --format json
-dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
+graphify serve graphify-out/graph.json
 ```
 
 Connect Claude Desktop or VS Code and ask "Find the shortest path between the auth module and the database." The server exposes 5 tools for searching, navigating, and analyzing your codebase graph. See the [MCP Server docs](mcp-server.md) for client setup.

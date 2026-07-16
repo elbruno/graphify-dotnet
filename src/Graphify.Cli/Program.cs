@@ -1,8 +1,16 @@
 using System.CommandLine;
+using System.Text.Json;
 using Graphify.Cli.Configuration;
+using Graphify.Cli.Mcp;
+using Graphify.Graph;
+using Graphify.Models;
 using Graphify.Pipeline;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Server;
 using Spectre.Console;
 
 var rootCommand = new RootCommand("graphify-dotnet: AI-powered knowledge graph builder for codebases");
@@ -301,6 +309,95 @@ benchmarkCommand.SetAction(async (parseResult, cancellationToken) =>
 
 rootCommand.Subcommands.Add(benchmarkCommand);
 
+// ── serve command ────────────────────────────────────────────────────────
+var servePathArg = new Argument<string>("graph-path")
+{
+    Description = "Path to the graph JSON file",
+    DefaultValueFactory = _ => "graphify-out/graph.json"
+};
+
+var serveVerboseOpt = new Option<bool>("--verbose", "-v")
+{
+    Description = "Enable verbose logging"
+};
+
+var serveCommand = new Command("serve", "Serve the knowledge graph over MCP (Model Context Protocol)");
+serveCommand.Arguments.Add(servePathArg);
+serveCommand.Options.Add(serveVerboseOpt);
+
+serveCommand.SetAction(async (parseResult, cancellationToken) =>
+{
+    var graphPath = parseResult.GetValue(servePathArg)!;
+    var verbose = parseResult.GetValue(serveVerboseOpt);
+
+    var builder = Host.CreateApplicationBuilder(args);
+
+    builder.Logging.ClearProviders();
+    builder.Logging.AddConsole(options =>
+    {
+        options.LogToStandardErrorThreshold = verbose ? LogLevel.Trace : LogLevel.Warning;
+    });
+
+    KnowledgeGraph graph;
+    try
+    {
+        if (!File.Exists(graphPath))
+        {
+            await Console.Error.WriteLineAsync($"Error: Graph file not found at '{graphPath}'");
+            return 1;
+        }
+
+        var json = await File.ReadAllTextAsync(graphPath, cancellationToken);
+        var graphData = JsonSerializer.Deserialize<GraphJsonData>(json);
+
+        if (graphData == null)
+        {
+            await Console.Error.WriteLineAsync($"Error: Failed to parse graph JSON from '{graphPath}'");
+            return 1;
+        }
+
+        graph = new KnowledgeGraph();
+
+        foreach (var node in graphData.Nodes)
+        {
+            graph.AddNode(node);
+        }
+
+        foreach (var edge in graphData.Edges)
+        {
+            graph.AddEdge(edge);
+        }
+
+        if (verbose)
+        {
+            await Console.Error.WriteLineAsync($"Loaded graph: {graph.NodeCount} nodes, {graph.EdgeCount} edges");
+        }
+    }
+    catch (Exception ex)
+    {
+        await Console.Error.WriteLineAsync($"Error loading graph: {ex.Message}");
+        return 1;
+    }
+
+    builder.Services.AddSingleton(graph);
+    builder.Services.AddSingleton<GraphTools>();
+    builder.Services.AddMcpServer()
+        .WithStdioServerTransport()
+        .WithToolsFromAssembly();
+
+    var app = builder.Build();
+
+    if (verbose)
+    {
+        await Console.Error.WriteLineAsync("Graphify MCP Server started");
+    }
+
+    await app.RunAsync(cancellationToken);
+    return 0;
+});
+
+rootCommand.Subcommands.Add(serveCommand);
+
 // ── config command ───────────────────────────────────────────────────
 var configCommand = new Command("config", "Configuration management");
 
@@ -444,4 +541,10 @@ static void ShowStyledConfig()
 static string FormatValue(string? value)
 {
     return value != null ? $"[green]{value}[/]" : "[grey](not set)[/]";
+}
+
+file record GraphJsonData
+{
+    public List<GraphNode> Nodes { get; init; } = new();
+    public List<GraphEdge> Edges { get; init; } = new();
 }

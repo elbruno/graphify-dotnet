@@ -44,9 +44,10 @@ dotnet clean
 - GitHub Copilot SDK integration
 - Copilot-specific extractors
 
-### MCP Server (`src/Graphify.Mcp/`)
-- Model Context Protocol server (stdio-based)
+### MCP Server (built into CLI)
+- `graphify serve` — Model Context Protocol server (stdio-based)
 - Exposes graph operations to Claude and other MCP clients
+- Tools defined in `src/Graphify.Cli/Mcp/GraphTools.cs`
 
 ### Tests
 - **Unit tests** (`Graphify.Tests`): Component-level testing

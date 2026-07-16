@@ -224,7 +224,7 @@ This generates:
 Once you have a `graph.json`, run the MCP server to let Claude, Copilot, or any MCP client query your knowledge graph.
 
 ```bash
-dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
+graphify serve graphify-out/graph.json
 ```
 
 Then connect your AI assistant — see the [MCP Server](mcp-server.md) guide for client configuration. You can ask questions like "Find all authentication-related nodes" or "What's the shortest path between UserService and DatabaseContext?"

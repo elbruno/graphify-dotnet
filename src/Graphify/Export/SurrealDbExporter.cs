@@ -1,6 +1,7 @@
 using Graphify.Graph;
 using SurrealDb.Embedded.RocksDb;
 using SurrealDb.Net;
+using Microsoft.Extensions.DependencyInjection;
 using SurrealDb.Net.Models;
 using SurrealDb.Net.Models.Auth;
 
@@ -86,26 +87,31 @@ public sealed class SurrealDbExporter : IGraphExporter
         return new SurrealDbRocksDbClient(outputPath);
     }
 
-    private async Task ExportRemoteAsync(KnowledgeGraph graph,
-        CancellationToken cancellationToken)
+private async Task ExportRemoteAsync(KnowledgeGraph graph,
+    CancellationToken cancellationToken)
+{
+    var configuration = SurrealDbOptions
+        .Create()
+        .WithEndpoint(_endpoint!)
+        .WithNamespace(_namespace ?? "graphify")
+        .WithDatabase(_database ?? "codebase")
+        .WithUsername(_username)
+        .WithPassword(_password)
+        .Build();
+
+    await using var db = new SurrealDbClient(configuration);
+
+    if (_username is not null)
     {
-        await using var db = new SurrealDbClient(_endpoint!);
-
-        if (_username is not null)
+        await db.SignIn(new RootAuth
         {
-            await db.SignIn(new RootAuth
-            {
-                Username = _username,
-                Password = _password ?? ""
-            });
-        }
-
-        await db.Use(
-            _namespace ?? "graphify",
-            _database ?? "codebase");
-
-        await ExportToClientAsync(db, graph, cancellationToken);
+            Username = _username,
+            Password = _password ?? ""
+        });
     }
+
+    await ExportToClientAsync(db, graph, cancellationToken);
+}
 
     private static async Task ExportToClientAsync(ISurrealDbClient db,
         KnowledgeGraph graph, CancellationToken cancellationToken)

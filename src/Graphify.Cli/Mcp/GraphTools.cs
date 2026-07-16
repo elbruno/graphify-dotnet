@@ -4,11 +4,8 @@ using Graphify.Graph;
 using Graphify.Models;
 using ModelContextProtocol.Server;
 
-namespace Graphify.Mcp;
+namespace Graphify.Cli.Mcp;
 
-/// <summary>
-/// MCP tools that expose knowledge graph operations.
-/// </summary>
 [McpServerToolType]
 public class GraphTools
 {
@@ -97,7 +94,6 @@ public class GraphTools
 
         try
         {
-            // Simple BFS path finding
             var visited = new HashSet<string>();
             var queue = new Queue<(GraphNode Node, List<GraphNode> Path)>();
             queue.Enqueue((sourceNode, new List<GraphNode> { sourceNode }));
@@ -217,7 +213,7 @@ public class GraphTools
         if (communityId.HasValue)
         {
             var communityNodes = _graph.GetNodesByCommunity(communityId.Value).ToList();
-            
+
             if (!communityNodes.Any())
             {
                 return JsonSerializer.Serialize(new { error = $"Community {communityId} not found or has no members" });
@@ -282,7 +278,7 @@ public class GraphTools
         }
 
         var topNodesByDegree = _graph.GetHighestDegreeNodes(topN).ToList();
-        
+
         var nodesByCommunity = allNodes.Where(n => n.Community.HasValue)
             .GroupBy(n => n.Community!.Value)
             .Count();
@@ -325,5 +321,4 @@ public class GraphTools
 
         return JsonSerializer.Serialize(analysis);
     }
-
 }
