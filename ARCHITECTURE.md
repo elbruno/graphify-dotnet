@@ -83,7 +83,8 @@ graphify-dotnet/
 ├── src/Graphify.Sdk/               # GitHub Copilot SDK integration
 │   └── CopilotExtractor.cs         # Copilot-specific extractors
 ├── src/Graphify.Mcp/               # MCP stdio server
-│   └── McpServer.cs                # ModelContextProtocol server
+│   ├── Program.cs                  # Host setup, graph loading, DI
+│   └── GraphTools.cs               # ModelContextProtocol tool definitions
 └── src/tests/                      # Test projects
     ├── Graphify.Tests/             # Unit tests
     └── Graphify.Integration.Tests/ # Integration tests

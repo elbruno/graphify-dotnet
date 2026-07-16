@@ -203,10 +203,10 @@ graphify supports **25+ file types** including C#, Python, TypeScript, JavaScrip
 
 ## Step 6: Export All Formats
 
-Want more than the default? Export to all 7 formats:
+Want more than the default? Export to all formats:
 
 ```bash
-graphify run . --format json,html,svg,neo4j,obsidian,wiki,report
+graphify run . --format json,html,svg,neo4j,obsidian,wiki,report,surrealdb
 ```
 
 This generates:
@@ -214,9 +214,20 @@ This generates:
 - `graph.json` — Machine-readable data
 - `graph.svg` — Static vector image for docs
 - `graph.cypher` — Neo4j import script
+- `codebase.db` — SurrealDB database (embedded or remote)
 - `obsidian/` — Obsidian vault with wikilinks
 - `wiki/` — Agent-crawlable documentation
 - `GRAPH_REPORT.md` — Analysis report
+
+## Step 7: Query with AI Assistants
+
+Once you have a `graph.json`, run the MCP server to let Claude, Copilot, or any MCP client query your knowledge graph.
+
+```bash
+dotnet run --project src/Graphify.Mcp -- graphify-out/graph.json
+```
+
+Then connect your AI assistant — see the [MCP Server](mcp-server.md) guide for client configuration. You can ask questions like "Find all authentication-related nodes" or "What's the shortest path between UserService and DatabaseContext?"
 
 ## Next Steps
 
@@ -224,5 +235,6 @@ This generates:
 - **[Configuration](configuration.md)** — Layered config system, environment variables
 - **[Worked Example](worked-example.md)** — Deep dive into the mini-library analysis
 - **[Watch Mode](watch-mode.md)** — Live graph updates as you edit code
-- **[Export Formats](export-formats.md)** — Details on all 7 output formats
+- **[MCP Server](mcp-server.md)** — Query your graph through AI assistants
+- **[Export Formats](export-formats.md)** — Details on all output formats
 - **[Troubleshooting](troubleshooting.md)** — Common issues and solutions

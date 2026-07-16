@@ -1,22 +1,46 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Graphify.Graph;
+using SurrealDb.Embedded.RocksDb;
+using SurrealDb.Net;
+using SurrealDb.Net.Models;
+using SurrealDb.Net.Models.Auth;
 
 namespace Graphify.Export;
 
-/// <summary>
-/// Exports knowledge graphs to SurrealDB format (embedded file-based database).
-/// Interim implementation uses JSON serialization compatible with SurrealDB schema.
-/// FUTURE: Replace with direct surrealdb.net client calls once stable API is confirmed.
-/// </summary>
 public sealed class SurrealDbExporter : IGraphExporter
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private readonly string? _endpoint;
+    private readonly string? _username;
+    private readonly string? _password;
+    private readonly string? _namespace;
+    private readonly string? _database;
+    private readonly SurrealDbRocksDbClient? _testClient;
+
+    public SurrealDbExporter(
+        string? endpoint = null,
+        string? username = null,
+        string? password = null,
+        string? ns = null,
+        string? database = null)
     {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
+        _endpoint = endpoint;
+        _username = username;
+        _password = password;
+        _namespace = ns;
+        _database = database;
+    }
+
+    /// <summary>
+    /// Testing constructor: accept a pre-opened client instead of creating one.
+    /// The exporter will NOT dispose the client — caller owns the lifetime.
+    /// </summary>
+    /// <summary>
+    /// Testing constructor: accept a pre-opened client (caller owns lifetime).
+    /// Enables in-process verification without RocksDB lock contention.
+    /// </summary>
+    public SurrealDbExporter(SurrealDbRocksDbClient testClient)
+    {
+        _testClient = testClient;
+    }
 
     public string Format => "surrealdb";
 
@@ -26,126 +50,116 @@ public sealed class SurrealDbExporter : IGraphExporter
         ArgumentNullException.ThrowIfNull(graph);
         ArgumentException.ThrowIfNullOrWhiteSpace(outputPath);
 
-        // Ensure output directory exists
+        if (_endpoint is not null)
+        {
+            await ExportRemoteAsync(graph, cancellationToken);
+        }
+        else
+        {
+            await ExportEmbeddedAsync(graph, outputPath, cancellationToken);
+        }
+    }
+
+    internal async Task ExportEmbeddedAsync(KnowledgeGraph graph, string outputPath,
+        CancellationToken cancellationToken)
+    {
+        if (_testClient is not null)
+        {
+            await _testClient.Use("graphify", "codebase");
+            await ExportToClientAsync(_testClient, graph, cancellationToken);
+            return;
+        }
+
+        await using var db = CreateRocksDbClient(outputPath);
+        await db.Use("graphify", "codebase");
+        await ExportToClientAsync(db, graph, cancellationToken);
+    }
+
+    private static SurrealDbRocksDbClient CreateRocksDbClient(string outputPath)
+    {
         var directory = Path.GetDirectoryName(outputPath);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
         }
 
-        // Build export structure
-        var nodes = graph.GetNodes()
-            .Select(n => new SurrealDbNodeRecord
-            {
-                Id = $"entities:{Uri.EscapeDataString(n.Id)}",
-                Label = n.Label,
-                Kind = n.Type,
-                FilePath = n.FilePath,
-                Language = n.Language,
-                Confidence = n.Confidence.ToString().ToUpperInvariant(),
-                Community = n.Community,
-                Metadata = n.Metadata
-            })
-            .ToList();
+        return new SurrealDbRocksDbClient(outputPath);
+    }
 
-        var edges = graph.GetEdges()
-            .Select(e => new SurrealDbEdgeRecord
-            {
-                Source = $"entities:{Uri.EscapeDataString(e.Source.Id)}",
-                Target = $"entities:{Uri.EscapeDataString(e.Target.Id)}",
-                Type = e.Relationship,
-                Weight = e.Weight,
-                Confidence = e.Confidence.ToString().ToUpperInvariant(),
-                Metadata = e.Metadata
-            })
-            .ToList();
+    private async Task ExportRemoteAsync(KnowledgeGraph graph,
+        CancellationToken cancellationToken)
+    {
+        await using var db = new SurrealDbClient(_endpoint!);
 
-        var exportData = new SurrealDbExportDto
+        if (_username is not null)
         {
-            Entities = nodes,
-            Relationships = edges,
-            Metadata = new ExportMetadataDto
+            await db.SignIn(new RootAuth
             {
-                EntityCount = nodes.Count,
-                RelationshipCount = edges.Count,
-                GeneratedAt = DateTime.UtcNow
-            }
-        };
+                Username = _username,
+                Password = _password ?? ""
+            });
+        }
 
-        // Write to file (JSON format for interim implementation)
-        await using var stream = new FileStream(outputPath, FileMode.Create, FileAccess.Write, FileShare.None, bufferSize: 4096, useAsync: true);
-        await JsonSerializer.SerializeAsync(stream, exportData, JsonOptions, cancellationToken);
+        await db.Use(
+            _namespace ?? "graphify",
+            _database ?? "codebase");
+
+        await ExportToClientAsync(db, graph, cancellationToken);
     }
 
-    private sealed record SurrealDbExportDto
+    private static async Task ExportToClientAsync(ISurrealDbClient db,
+        KnowledgeGraph graph, CancellationToken cancellationToken)
     {
-        [JsonPropertyName("entities")]
-        public required List<SurrealDbNodeRecord> Entities { get; init; }
+        await DefineSchemaAsync(db);
 
-        [JsonPropertyName("relationships")]
-        public required List<SurrealDbEdgeRecord> Relationships { get; init; }
+        var nodes = graph.GetNodes().ToList();
+        var edges = graph.GetEdges().ToList();
 
-        [JsonPropertyName("metadata")]
-        public required ExportMetadataDto Metadata { get; init; }
+        foreach (var node in nodes)
+        {
+            var escapedId = Uri.EscapeDataString(node.Id);
+            await db.Create("entity", new
+            {
+                Id = (RecordId)("entity", escapedId),
+                label = node.Label,
+                kind = node.Type,
+                filePath = node.FilePath,
+                language = node.Language,
+                confidence = node.Confidence.ToString().ToUpperInvariant(),
+                community = node.Community,
+                metadata = node.Metadata is { Count: > 0 }
+                    ? node.Metadata.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value)
+                    : null
+            });
+        }
+
+        for (int i = 0; i < edges.Count; i++)
+        {
+            var edge = edges[i];
+            var escapedSource = Uri.EscapeDataString(edge.Source.Id);
+            var escapedTarget = Uri.EscapeDataString(edge.Target.Id);
+            await db.Create("relationship", new
+            {
+                Id = (RecordId)("relationship", escapedSource + "->" + escapedTarget + "-" + i),
+                source = (RecordId)("entity", escapedSource),
+                target = (RecordId)("entity", escapedTarget),
+                type = edge.Relationship,
+                weight = edge.Weight,
+                confidence = edge.Confidence.ToString().ToUpperInvariant(),
+                metadata = edge.Metadata is { Count: > 0 }
+                    ? edge.Metadata.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value)
+                    : null
+            });
+        }
     }
 
-    private sealed record SurrealDbNodeRecord
+    private static async Task DefineSchemaAsync(ISurrealDbClient db)
     {
-        [JsonPropertyName("id")]
-        public required string Id { get; init; }
-
-        [JsonPropertyName("label")]
-        public required string Label { get; init; }
-
-        [JsonPropertyName("kind")]
-        public string? Kind { get; init; }
-
-        [JsonPropertyName("filePath")]
-        public string? FilePath { get; init; }
-
-        [JsonPropertyName("language")]
-        public string? Language { get; init; }
-
-        [JsonPropertyName("confidence")]
-        public string? Confidence { get; init; }
-
-        [JsonPropertyName("community")]
-        public int? Community { get; init; }
-
-        [JsonPropertyName("metadata")]
-        public IReadOnlyDictionary<string, string>? Metadata { get; init; }
+        // Schema definition. Separate statements with semicolons for SurrealQL compatibility.
+        await db.Query($"""
+            DEFINE TABLE IF NOT EXISTS entity;
+            DEFINE TABLE IF NOT EXISTS relationship;
+            """);
     }
 
-    private sealed record SurrealDbEdgeRecord
-    {
-        [JsonPropertyName("source")]
-        public required string Source { get; init; }
-
-        [JsonPropertyName("target")]
-        public required string Target { get; init; }
-
-        [JsonPropertyName("type")]
-        public required string Type { get; init; }
-
-        [JsonPropertyName("weight")]
-        public double Weight { get; init; } = 1.0;
-
-        [JsonPropertyName("confidence")]
-        public string? Confidence { get; init; }
-
-        [JsonPropertyName("metadata")]
-        public IReadOnlyDictionary<string, string>? Metadata { get; init; }
-    }
-
-    private sealed record ExportMetadataDto
-    {
-        [JsonPropertyName("entity_count")]
-        public int EntityCount { get; init; }
-
-        [JsonPropertyName("relationship_count")]
-        public int RelationshipCount { get; init; }
-
-        [JsonPropertyName("generated_at")]
-        public DateTime GeneratedAt { get; init; }
-    }
 }

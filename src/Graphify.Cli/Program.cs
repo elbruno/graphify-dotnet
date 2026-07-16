@@ -21,7 +21,10 @@ static void AddPipelineOptions(Command cmd,
     out Option<string> outputOpt, out Option<string> formatOpt,
     out Option<bool> verboseOpt, out Option<string?> providerOpt,
     out Option<string?> endpointOpt, out Option<string?> apiKeyOpt,
-    out Option<string?> modelOpt, out Option<string?> deploymentOpt)
+    out Option<string?> modelOpt, out Option<string?> deploymentOpt,
+    out Option<string?> surrealEndpointOpt, out Option<string?> surrealUserOpt,
+    out Option<string?> surrealPassOpt, out Option<string?> surrealNsOpt,
+    out Option<string?> surrealDbOpt)
 {
     outputOpt = new Option<string>("--output", "-o")
     {
@@ -57,6 +60,26 @@ static void AddPipelineOptions(Command cmd,
     {
         Description = "Azure OpenAI deployment name"
     };
+    surrealEndpointOpt = new Option<string?>("--surreal-endpoint")
+    {
+        Description = "SurrealDB remote endpoint (e.g., http://localhost:8000). Sets remote mode."
+    };
+    surrealUserOpt = new Option<string?>("--surreal-user")
+    {
+        Description = "SurrealDB username (default: root)"
+    };
+    surrealPassOpt = new Option<string?>("--surreal-pass")
+    {
+        Description = "SurrealDB password"
+    };
+    surrealNsOpt = new Option<string?>("--surreal-ns")
+    {
+        Description = "SurrealDB namespace (default: graphify)"
+    };
+    surrealDbOpt = new Option<string?>("--surreal-db")
+    {
+        Description = "SurrealDB database name (default: codebase)"
+    };
 
     cmd.Options.Add(outputOpt);
     cmd.Options.Add(formatOpt);
@@ -66,6 +89,11 @@ static void AddPipelineOptions(Command cmd,
     cmd.Options.Add(apiKeyOpt);
     cmd.Options.Add(modelOpt);
     cmd.Options.Add(deploymentOpt);
+    cmd.Options.Add(surrealEndpointOpt);
+    cmd.Options.Add(surrealUserOpt);
+    cmd.Options.Add(surrealPassOpt);
+    cmd.Options.Add(surrealNsOpt);
+    cmd.Options.Add(surrealDbOpt);
 }
 
 static async Task<(IChatClient? chatClient, bool verbose)> ResolveProviderAsync(
@@ -131,7 +159,10 @@ runCommand.Arguments.Add(runPathArg);
 AddPipelineOptions(runCommand,
     out var runOutputOpt, out var runFormatOpt, out var runVerboseOpt,
     out var runProviderOpt, out var runEndpointOpt, out var runApiKeyOpt,
-    out var runModelOpt, out var runDeploymentOpt);
+    out var runModelOpt, out var runDeploymentOpt,
+    out var runSurrealEndpointOpt, out var runSurrealUserOpt,
+    out var runSurrealPassOpt, out var runSurrealNsOpt,
+    out var runSurrealDbOpt);
 
 var runConfigOpt = new Option<bool>("--config", "-c")
 {
@@ -174,7 +205,20 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
         runVerboseOpt, runProviderOpt, runEndpointOpt, runApiKeyOpt, runModelOpt, runDeploymentOpt,
         ignoreProviderOptions: useConfigWizard);
 
-    var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient);
+    var surrealOptions = new CliSurrealOptions
+    {
+        Endpoint = parseResult.GetValue(runSurrealEndpointOpt),
+        Username = parseResult.GetValue(runSurrealUserOpt),
+        Password = parseResult.GetValue(runSurrealPassOpt),
+        Namespace = parseResult.GetValue(runSurrealNsOpt),
+        Database = parseResult.GetValue(runSurrealDbOpt)
+    };
+
+    var configuration = ConfigurationFactory.Build(cliOptions: null, surrealOptions);
+    var graphifyConfig = new GraphifyConfig();
+    configuration.GetSection("Graphify").Bind(graphifyConfig);
+
+    var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient, graphifyConfig.SurrealDb);
     var graph = await runner.RunAsync(path, output, formats, useCache: true, cancellationToken);
     return graph != null ? 0 : 1;
 });
@@ -189,7 +233,10 @@ watchCommand.Arguments.Add(watchPathArg);
 AddPipelineOptions(watchCommand,
     out var watchOutputOpt, out var watchFormatOpt, out var watchVerboseOpt,
     out var watchProviderOpt, out var watchEndpointOpt, out var watchApiKeyOpt,
-    out var watchModelOpt, out var watchDeploymentOpt);
+    out var watchModelOpt, out var watchDeploymentOpt,
+    out var watchSurrealEndpointOpt, out var watchSurrealUserOpt,
+    out var watchSurrealPassOpt, out var watchSurrealNsOpt,
+    out var watchSurrealDbOpt);
 
 watchCommand.SetAction(async (parseResult, cancellationToken) =>
 {
@@ -201,9 +248,22 @@ watchCommand.SetAction(async (parseResult, cancellationToken) =>
     var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
         watchVerboseOpt, watchProviderOpt, watchEndpointOpt, watchApiKeyOpt, watchModelOpt, watchDeploymentOpt);
 
+    var surrealOptions = new CliSurrealOptions
+    {
+        Endpoint = parseResult.GetValue(watchSurrealEndpointOpt),
+        Username = parseResult.GetValue(watchSurrealUserOpt),
+        Password = parseResult.GetValue(watchSurrealPassOpt),
+        Namespace = parseResult.GetValue(watchSurrealNsOpt),
+        Database = parseResult.GetValue(watchSurrealDbOpt)
+    };
+
+    var configuration = ConfigurationFactory.Build(cliOptions: null, surrealOptions);
+    var graphifyConfig = new GraphifyConfig();
+    configuration.GetSection("Graphify").Bind(graphifyConfig);
+
     Console.WriteLine("Running initial pipeline...");
     Console.WriteLine();
-    var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient);
+    var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient, graphifyConfig.SurrealDb);
     var graph = await runner.RunAsync(path, output, formats, useCache: true, cancellationToken);
 
     if (graph is null)

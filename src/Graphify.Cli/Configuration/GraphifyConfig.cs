@@ -12,6 +12,20 @@ public class GraphifyConfig
     public AzureOpenAIConfig AzureOpenAI { get; set; } = new();
     public OllamaConfig Ollama { get; set; } = new();
     public CopilotSdkConfig CopilotSdk { get; set; } = new();
+    public SurrealDbConfig SurrealDb { get; set; } = new();
+}
+
+/// <summary>
+/// SurrealDB connection configuration.
+/// When Endpoint is set, remote mode is used; otherwise embedded mode.
+/// </summary>
+public class SurrealDbConfig
+{
+    public string? Endpoint { get; set; }
+    public string? Username { get; set; }
+    public string? Password { get; set; }
+    public string? Namespace { get; set; }
+    public string? Database { get; set; }
 }
 
 /// <summary>

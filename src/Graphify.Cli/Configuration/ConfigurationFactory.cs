@@ -8,7 +8,9 @@ namespace Graphify.Cli.Configuration;
 /// </summary>
 public static class ConfigurationFactory
 {
-    public static IConfiguration Build(CliProviderOptions? cliOptions = null)
+    public static IConfiguration Build(
+        CliProviderOptions? cliOptions = null,
+        CliSurrealOptions? surrealOptions = null)
     {
         var builder = new ConfigurationBuilder();
 
@@ -27,10 +29,10 @@ public static class ConfigurationFactory
         builder.AddUserSecrets<Program>(optional: true);
 
         // Layer 5: CLI argument overrides (highest priority)
+        var overrides = new Dictionary<string, string?>();
+
         if (cliOptions != null)
         {
-            var overrides = new Dictionary<string, string?>();
-
             if (cliOptions.Provider != null)
                 overrides["Graphify:Provider"] = cliOptions.Provider;
 
@@ -40,7 +42,6 @@ public static class ConfigurationFactory
                     overrides["Graphify:Ollama:Endpoint"] = cliOptions.Endpoint;
                 else if (cliOptions.Provider?.Equals("copilotsdk", StringComparison.OrdinalIgnoreCase) != true)
                     overrides["Graphify:AzureOpenAI:Endpoint"] = cliOptions.Endpoint;
-                // CopilotSdk does not use endpoints — silently ignore
             }
 
             if (cliOptions.ApiKey != null)
@@ -58,10 +59,39 @@ public static class ConfigurationFactory
 
             if (cliOptions.Deployment != null)
                 overrides["Graphify:AzureOpenAI:DeploymentName"] = cliOptions.Deployment;
+        }
 
+        if (surrealOptions != null)
+        {
+            if (surrealOptions.Endpoint != null)
+                overrides["Graphify:SurrealDb:Endpoint"] = surrealOptions.Endpoint;
+            if (surrealOptions.Username != null)
+                overrides["Graphify:SurrealDb:Username"] = surrealOptions.Username;
+            if (surrealOptions.Password != null)
+                overrides["Graphify:SurrealDb:Password"] = surrealOptions.Password;
+            if (surrealOptions.Namespace != null)
+                overrides["Graphify:SurrealDb:Namespace"] = surrealOptions.Namespace;
+            if (surrealOptions.Database != null)
+                overrides["Graphify:SurrealDb:Database"] = surrealOptions.Database;
+        }
+
+        if (overrides.Count > 0)
+        {
             builder.AddInMemoryCollection(overrides);
         }
 
         return builder.Build();
     }
+}
+
+/// <summary>
+/// CLI-provided SurrealDB connection overrides.
+/// </summary>
+public sealed record CliSurrealOptions
+{
+    public string? Endpoint { get; init; }
+    public string? Username { get; init; }
+    public string? Password { get; init; }
+    public string? Namespace { get; init; }
+    public string? Database { get; init; }
 }
