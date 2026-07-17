@@ -124,7 +124,7 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
         foreach (var node in nodes)
         {
             var escapedId = Uri.EscapeDataString(node.Id);
-            await db.Create("entity", new
+            await db.Create("entity", new SurrealDbEntity
             {
                 Id = (RecordId)("entity", escapedId),
                 label = node.Label,
@@ -144,7 +144,7 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
             var edge = edges[i];
             var escapedSource = Uri.EscapeDataString(edge.Source.Id);
             var escapedTarget = Uri.EscapeDataString(edge.Target.Id);
-            await db.Create("relationship", new
+            await db.Create("relationship", new SurrealDbRelationship
             {
                 Id = (RecordId)("relationship", escapedSource + "->" + escapedTarget + "-" + i),
                 source = (RecordId)("entity", escapedSource),
@@ -166,6 +166,37 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
             DEFINE TABLE IF NOT EXISTS entity;
             DEFINE TABLE IF NOT EXISTS relationship;
             """);
+    }
+
+    /// <summary>
+    /// Concrete type for SurrealDB entity records.
+    /// Dahomey.Cbor cannot serialize anonymous types; concrete types are required.
+    /// </summary>
+    internal sealed class SurrealDbEntity
+    {
+        public RecordId? Id { get; set; }
+        public string? label { get; set; }
+        public string? kind { get; set; }
+        public string? filePath { get; set; }
+        public string? language { get; set; }
+        public string? confidence { get; set; }
+        public int? community { get; set; }
+        public Dictionary<string, object?>? metadata { get; set; }
+    }
+
+    /// <summary>
+    /// Concrete type for SurrealDB relationship records.
+    /// Dahomey.Cbor cannot serialize anonymous types; concrete types are required.
+    /// </summary>
+    internal sealed class SurrealDbRelationship
+    {
+        public RecordId? Id { get; set; }
+        public RecordId? source { get; set; }
+        public RecordId? target { get; set; }
+        public string? type { get; set; }
+        public double weight { get; set; }
+        public string? confidence { get; set; }
+        public Dictionary<string, object?>? metadata { get; set; }
     }
 
 }

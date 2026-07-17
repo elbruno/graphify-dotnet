@@ -8,4 +8,8 @@
     <Project Path="src\tests\Graphify.Tests\Graphify.Tests.csproj" />
     <Project Path="src\tests\Graphify.Integration.Tests\Graphify.Integration.Tests.csproj" />
   </Folder>
+  <Folder Name="/lib/surrealdb.net/">
+    <Project Path="lib\surrealdb.net\SurrealDb.Net\SurrealDb.Net.csproj" />
+    <Project Path="lib\surrealdb.net\SurrealDb.Embedded.RocksDb\SurrealDb.Embedded.RocksDb.csproj" />
+  </Folder>
 </Solution>
