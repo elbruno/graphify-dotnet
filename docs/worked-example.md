@@ -208,6 +208,23 @@ Agent-crawlable documentation with an index page and community breakdowns. Desig
 
 The analysis report we walked through above — god nodes, communities, surprising connections, and suggested questions.
 
+## Querying with the MCP Server
+
+The MCP server loads `graph.json` and exposes it as tools for AI assistants. Start it:
+
+```bash
+graphify serve samples/mini-library/graphify-out/graph.json
+```
+
+Then connect Claude Desktop or VS Code and ask questions:
+
+- *"Find all nodes related to UserRepository."*
+- *"What's the shortest path between User and UserService?"*
+- *"List the communities with their top members."*
+- *"Analyze the graph structure."*
+
+The server exposes 5 tools — `query`, `path`, `explain`, `communities`, `analyze`. Configuration examples and a full reference are in the [MCP Server](mcp-server.md) guide.
+
 For details on each format, see:
 
 - [Export Formats Overview](export-formats.md)
@@ -218,6 +235,7 @@ For details on each format, see:
 - [Obsidian Vault Export](format-obsidian.md)
 - [Wiki Export](format-wiki.md)
 - [Graph Analysis Report](format-report.md)
+- [MCP Server](mcp-server.md)
 
 ## Try It Yourself
 

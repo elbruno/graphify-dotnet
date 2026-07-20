@@ -6,7 +6,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>graphify</ToolCommandName>
     <PackageId>graphify-dotnet</PackageId>
-    <Version>0.6.2</Version>
+    <Version>0.9.0-preview.4</Version>
     <Description>AI-powered knowledge graph builder for codebases</Description>
     <Authors>Bruno Capuano</Authors>
     <PackageProjectUrl>https://github.com/elbruno/graphify-dotnet</PackageProjectUrl>
@@ -30,6 +30,9 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.UserSecrets" Version="10.*" />
+    <PackageReference Include="ModelContextProtocol" Version="0.*" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.*" />
     <PackageReference Include="Spectre.Console" Version="0.*" />
     <PackageReference Include="System.CommandLine" Version="2.*" />
   </ItemGroup>

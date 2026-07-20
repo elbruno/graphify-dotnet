@@ -4,11 +4,8 @@ using Graphify.Graph;
 using Graphify.Models;
 using ModelContextProtocol.Server;
 
-namespace Graphify.Mcp;
+namespace Graphify.Cli.Mcp;
 
-/// <summary>
-/// MCP tools that expose knowledge graph operations.
-/// </summary>
 [McpServerToolType]
 public class GraphTools
 {
@@ -20,11 +17,11 @@ public class GraphTools
     }
 
     [McpServerTool]
-    [Description("Search for nodes and edges in the knowledge graph. Returns matching nodes with their connections.")]
+    [Description("Search nodes and edges by name, label, or type.")]
     public string Query(
-        [Description("Search term to match against node IDs, labels, or types")]
+        [Description("Match against node ID, label, or type")]
         string searchTerm,
-        [Description("Maximum number of results to return (default: 10)")]
+        [Description("Max results (default 10)")]
         int limit = 10)
     {
         if (string.IsNullOrWhiteSpace(searchTerm))
@@ -66,15 +63,15 @@ public class GraphTools
             query = searchTerm,
             resultCount = matchingNodes.Count,
             results = matchingNodes
-        }, new JsonSerializerOptions { WriteIndented = true });
+        });
     }
 
     [McpServerTool]
-    [Description("Find the shortest path between two nodes in the knowledge graph.")]
+    [Description("Shortest path between two nodes.")]
     public string Path(
-        [Description("Starting node ID")]
+        [Description("Start node ID")]
         string sourceId,
-        [Description("Target node ID")]
+        [Description("End node ID")]
         string targetId)
     {
         if (string.IsNullOrWhiteSpace(sourceId) || string.IsNullOrWhiteSpace(targetId))
@@ -97,7 +94,6 @@ public class GraphTools
 
         try
         {
-            // Simple BFS path finding
             var visited = new HashSet<string>();
             var queue = new Queue<(GraphNode Node, List<GraphNode> Path)>();
             queue.Enqueue((sourceNode, new List<GraphNode> { sourceNode }));
@@ -119,7 +115,7 @@ public class GraphTools
                             label = n.Label,
                             type = n.Type
                         }).ToList()
-                    }, new JsonSerializerOptions { WriteIndented = true });
+                    });
                 }
 
                 foreach (var neighbor in _graph.GetNeighbors(current.Id))
@@ -135,8 +131,7 @@ public class GraphTools
 
             return JsonSerializer.Serialize(new
             {
-                found = false,
-                message = $"No path found between '{sourceId}' and '{targetId}'"
+                found = false
             });
         }
         catch (Exception ex)
@@ -149,9 +144,9 @@ public class GraphTools
     }
 
     [McpServerTool]
-    [Description("Explain a node's role and its connections in the knowledge graph.")]
+    [Description("Node details with all connections.")]
     public string Explain(
-        [Description("Node ID to explain")]
+        [Description("Node ID")]
         string nodeId)
     {
         if (string.IsNullOrWhiteSpace(nodeId))
@@ -200,17 +195,16 @@ public class GraphTools
                 toLabel = e.Target.Label,
                 relationship = e.Relationship,
                 confidence = e.Confidence.ToString()
-            }).ToList(),
-            summary = GenerateNodeSummary(node, inEdges.Count, outEdges.Count, degree)
+            }).ToList()
         };
 
-        return JsonSerializer.Serialize(explanation, new JsonSerializerOptions { WriteIndented = true });
+        return JsonSerializer.Serialize(explanation);
     }
 
     [McpServerTool]
-    [Description("List communities and their members in the knowledge graph.")]
+    [Description("List communities and their members.")]
     public string Communities(
-        [Description("Optional: specific community ID to query (omit to list all)")]
+        [Description("Specific community (omit for all)")]
         int? communityId = null)
     {
         var allNodes = _graph.GetNodes().ToList();
@@ -219,7 +213,7 @@ public class GraphTools
         if (communityId.HasValue)
         {
             var communityNodes = _graph.GetNodesByCommunity(communityId.Value).ToList();
-            
+
             if (!communityNodes.Any())
             {
                 return JsonSerializer.Serialize(new { error = $"Community {communityId} not found or has no members" });
@@ -237,7 +231,7 @@ public class GraphTools
                     filePath = n.FilePath,
                     degree = _graph.GetDegree(n.Id)
                 }).OrderByDescending(n => n.degree).ToList()
-            }, new JsonSerializerOptions { WriteIndented = true });
+            });
         }
 
         var communities = nodesWithCommunities
@@ -266,13 +260,13 @@ public class GraphTools
             nodesInCommunities = nodesWithCommunities.Count,
             nodesWithoutCommunity = allNodes.Count - nodesWithCommunities.Count,
             communities
-        }, new JsonSerializerOptions { WriteIndented = true });
+        });
     }
 
     [McpServerTool]
-    [Description("Run analysis on the knowledge graph and return structural insights.")]
+    [Description("Graph-wide statistics and structure.")]
     public string Analyze(
-        [Description("Number of top nodes to include in analysis (default: 10)")]
+        [Description("Top nodes to include (default 10)")]
         int topN = 10)
     {
         var allNodes = _graph.GetNodes().ToList();
@@ -284,7 +278,7 @@ public class GraphTools
         }
 
         var topNodesByDegree = _graph.GetHighestDegreeNodes(topN).ToList();
-        
+
         var nodesByCommunity = allNodes.Where(n => n.Community.HasValue)
             .GroupBy(n => n.Community!.Value)
             .Count();
@@ -322,73 +316,9 @@ public class GraphTools
                 community = t.Node.Community
             }).ToList(),
             nodeTypes = nodesByType,
-            relationshipTypes = edgesByRelationship,
-            insights = GenerateInsights(allNodes, allEdges, topNodesByDegree, isolatedNodes.Count, nodesByCommunity)
+            relationshipTypes = edgesByRelationship
         };
 
-        return JsonSerializer.Serialize(analysis, new JsonSerializerOptions { WriteIndented = true });
-    }
-
-    private static string GenerateNodeSummary(GraphNode node, int inCount, int outCount, int totalDegree)
-    {
-        var role = node.Type switch
-        {
-            "class" => "class definition",
-            "function" => "function or method",
-            "module" => "module or namespace",
-            "file" => "file",
-            "concept" => "abstract concept",
-            _ => $"{node.Type} entity"
-        };
-
-        var connectivityDesc = totalDegree switch
-        {
-            0 => "isolated (no connections)",
-            1 => "minimally connected (1 connection)",
-            < 5 => $"lightly connected ({totalDegree} connections)",
-            < 20 => $"moderately connected ({totalDegree} connections)",
-            _ => $"highly connected ({totalDegree} connections)"
-        };
-
-        return $"'{node.Label}' is a {role} that is {connectivityDesc}. " +
-               $"It has {inCount} incoming and {outCount} outgoing relationships.";
-    }
-
-    private static List<string> GenerateInsights(
-        List<GraphNode> allNodes,
-        List<GraphEdge> allEdges,
-        List<(GraphNode Node, int Degree)> topNodes,
-        int isolatedCount,
-        int communityCount)
-    {
-        var insights = new List<string>();
-
-        if (topNodes.Any())
-        {
-            var topNode = topNodes.First();
-            insights.Add($"The most connected node is '{topNode.Node.Label}' ({topNode.Node.Type}) with {topNode.Degree} connections.");
-        }
-
-        if (isolatedCount > 0)
-        {
-            var isolatedPct = (isolatedCount * 100.0) / allNodes.Count;
-            insights.Add($"{isolatedCount} nodes ({isolatedPct:F1}%) are isolated with no connections.");
-        }
-
-        if (communityCount > 0)
-        {
-            insights.Add($"The graph is organized into {communityCount} communities, indicating modular structure.");
-        }
-
-        var avgDegree = allNodes.Any() ? allNodes.Average(n => n.Type == "class" ? 1 : 0) : 0;
-        if (allEdges.Any())
-        {
-            var mostCommonRel = allEdges.GroupBy(e => e.Relationship)
-                .OrderByDescending(g => g.Count())
-                .First();
-            insights.Add($"The most common relationship type is '{mostCommonRel.Key}' ({mostCommonRel.Count()} edges).");
-        }
-
-        return insights;
+        return JsonSerializer.Serialize(analysis);
     }
 }

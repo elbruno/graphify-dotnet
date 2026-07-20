@@ -11,6 +11,7 @@
 | **SVG** | `graph.svg` | Documentation, README embeds, print | Static | Everyone |
 | **Neo4j** | `graph.cypher` | Advanced queries, large datasets, analysis | Database queries | Analysts, power users |
 | **Ladybug** | `graph.ladybug.cypher` | Embedded local analytics, research | Database queries | Analysts, researchers |
+| **SurrealDB** | `codebase.db` | Multi-model queries, real-time dashboards | Database queries | Developers, analysts |
 | **Obsidian** | `obsidian/` folder | Personal knowledge management | Note linking | Knowledge workers |
 | **Wiki** | `wiki/` folder | Team documentation, AI agents, onboarding | Browser navigation | Everyone |
 | **Report** | `GRAPH_REPORT.md` | Quick insights, architecture review | Reading | Everyone |
@@ -27,8 +28,8 @@ graphify run ./my-project
 ### All Formats
 
 ```bash
-graphify run ./my-project --format json,html,svg,neo4j,obsidian,wiki,report
-# Generates all 7 exports for comprehensive analysis
+graphify run ./my-project --format json,html,svg,neo4j,obsidian,wiki,report,surrealdb
+# Generates all 8 exports for comprehensive analysis
 ```
 
 ### Specific Format
@@ -68,9 +69,10 @@ graphify run ./my-project --format json
 
 ### For Advanced Queries
 
-**Need complex graph operations?** → Use **Neo4j**
+**Need complex graph operations?** → Use **Neo4j** or **SurrealDB**
 
-- Cypher query language
+- Cypher query language (Neo4j)
+- SurrealQL multi-model queries (SurrealDB)
 - Pattern matching, shortest paths, cycles
 - Combine with other graph data
 - Real-time dashboards
@@ -130,16 +132,16 @@ graphify run ./src --format obsidian,wiki
 ### "I Need Advanced Graph Queries"
 
 ```bash
-graphify run ./src --format neo4j
-# Import into Neo4j
-# Write Cypher queries for patterns, cycles, paths
+graphify run ./src --format neo4j,surrealdb
+# Import into Neo4j or SurrealDB
+# Write Cypher or SurrealQL queries for patterns, cycles, paths
 # Run complex analysis
 ```
 
 ### "I Want Everything"
 
 ```bash
-graphify run ./src --format json,html,svg,neo4j,obsidian,wiki,report
+graphify run ./src --format json,html,svg,neo4j,obsidian,wiki,report,surrealdb
 # Get all perspectives on your codebase
 # Use different formats for different purposes
 # No performance penalty — all generated in one run
@@ -213,7 +215,21 @@ Ladybug-compatible Cypher script with structured DDL (`CREATE NODE TABLE`, `CREA
 
 [Learn more →](format-ladybug.md)
 
-### 6. Obsidian Vault Export
+### 6. SurrealDB Export
+
+**Produces:** `codebase.db`
+
+SurrealDB database with both embedded (RocksDB) and remote modes. Nodes stored as `entity` table, edges as `relationship` table with typed metadata.
+
+- ✅ Embedded mode — no server required (RocksDB)
+- ✅ Remote mode — connect to any SurrealDB instance
+- ✅ SurrealQL for multi-model queries (graph, document, relational)
+- ✅ Real-time dashboards via SurrealDB subscriptions
+- ✅ Typed metadata stored natively
+
+[Learn more →](format-surrealdb.md)
+
+### 7. Obsidian Vault Export
 
 **Produces:** `obsidian/` folder
 
@@ -226,7 +242,7 @@ Personal knowledge management vault with interconnected notes.
 
 [Learn more →](format-obsidian.md)
 
-### 7. Wiki Export
+### 8. Wiki Export
 
 **Produces:** `wiki/` folder
 
@@ -239,7 +255,7 @@ Documentation site structure, agent-crawlable.
 
 [Learn more →](format-wiki.md)
 
-### 8. Graph Analysis Report
+### 9. Graph Analysis Report
 
 **Produces:** `GRAPH_REPORT.md`
 
@@ -259,7 +275,7 @@ There's no performance penalty for generating multiple formats in one run:
 
 ```bash
 # Fast and efficient — all generated in ~2 seconds
-graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report
+graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report,surrealdb
 ```
 
 **Recommended combinations:**
@@ -269,9 +285,9 @@ graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report
 | Quick start | `html, report` |
 | Documentation | `html, svg, report` |
 | Knowledge base | `obsidian, wiki, report` |
-| Analysis | `json, neo4j, ladybug` |
+| Analysis | `json, neo4j, ladybug, surrealdb` |
 | Embedded analytics | `ladybug, report` |
-| Everything | `json, html, svg, neo4j, ladybug, obsidian, wiki, report` |
+| Everything | `json, html, svg, neo4j, ladybug, obsidian, wiki, report, surrealdb` |
 
 ## Format Sizes
 
@@ -284,6 +300,7 @@ Approximate file/folder sizes for 1000-node graphs:
 | SVG | ~1 MB |
 | Neo4j Cypher | ~200 KB |
 | Ladybug Cypher | ~250 KB |
+| SurrealDB | ~4 MB (embedded database) |
 | Obsidian | ~2 MB (many files) |
 | Wiki | ~3 MB (many files) |
 | Report | ~100 KB |
@@ -305,6 +322,9 @@ git add obsidian/ wiki/
 # Store Ladybug script for embedded analytics
 git add graph.ladybug.cypher
 
+# Store SurrealDB database for querying
+git add codebase.db
+
 # Ignore HTML (it's static, can be regenerated)
 echo "graph.html" >> .gitignore
 ```
@@ -318,11 +338,11 @@ Update formats whenever code changes significantly:
 graphify run ./src
 
 # Full refresh (all formats)
-graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report
+graphify run ./src --format json,html,svg,neo4j,ladybug,obsidian,wiki,report,surrealdb
 
 # In CI/CD: commit updated exports
 graphify run ./src
-git add graph.* GRAPH_REPORT.md obsidian/ wiki/ graph.ladybug.cypher
+git add graph.* GRAPH_REPORT.md obsidian/ wiki/ graph.ladybug.cypher codebase.db
 git commit -m "chore: update architecture exports"
 git push
 ```
@@ -335,6 +355,7 @@ git push
 | SVG | Static (no interactivity) | Use HTML for exploration |
 | JSON | Requires programming knowledge | Use HTML or Report for browsing |
 | Neo4j | Requires Neo4j setup | Use HTML for quick exploration |
+| SurrealDB | Embedded file is large; remote needs server | Use remote mode for multi-user access |
 | Ladybug | Requires Ladybug runtime to execute | Generate alongside Report for reading |
 | Obsidian | Requires Obsidian app | Use Wiki for browser access |
 | Wiki | Manual navigation (no DB queries) | Use Neo4j or Ladybug for complex analysis |
@@ -347,6 +368,7 @@ git push
 - [SVG Graph Export](format-svg.md)
 - [Neo4j Cypher Export](format-neo4j.md)
 - [Ladybug Export](format-ladybug.md)
+- [SurrealDB Export](format-surrealdb.md)
 - [Obsidian Vault Export](format-obsidian.md)
 - [Wiki Export](format-wiki.md)
 - [Graph Analysis Report](format-report.md)

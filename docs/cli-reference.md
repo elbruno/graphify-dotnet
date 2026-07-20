@@ -22,7 +22,7 @@ graphify run [path] [options]
 |-----------------|---------|-------------|
 | `path` | `.` | Path to the project to analyze |
 | `--output`, `-o` | `graphify-out` | Output directory |
-| `--format`, `-f` | `json,html,report` | Export formats (comma-separated): `json`, `html`, `svg`, `neo4j`, `ladybug`, `obsidian`, `wiki`, `report` |
+| `--format`, `-f` | `json,html,report` | Export formats (comma-separated): `json`, `html`, `svg`, `neo4j`, `ladybug`, `surrealdb`, `obsidian`, `wiki`, `report` |
 | `--verbose`, `-v` | `false` | Enable detailed progress output |
 | `--provider`, `-p` | *(from config)* | AI provider: `azureopenai`, `ollama`, `copilotsdk` |
 | `--endpoint` | *(from config)* | AI service endpoint URL |
@@ -41,7 +41,7 @@ graphify run
 graphify run ./your-project
 
 # All export formats with verbose output
-graphify run . --format json,html,svg,neo4j,ladybug,obsidian,wiki,report -v
+graphify run . --format json,html,svg,neo4j,ladybug,obsidian,wiki,report,surrealdb -v
 
 # Use Ollama locally
 graphify run . --provider ollama --model codellama
@@ -132,6 +132,34 @@ graphify config folder
 ```
 
 See [Configuration](configuration.md) for details on the layered config system.
+
+## `graphify serve`
+
+Serve the knowledge graph over MCP (Model Context Protocol) — AI assistants query it via stdio.
+
+```bash
+graphify serve [graph-path] [options]
+```
+
+| Argument | Default | Description |
+|----------|---------|-------------|
+| `graph-path` | `graphify-out/graph.json` | Path to the graph JSON file |
+| `--verbose`, `-v` | `false` | Enable detailed logging to stderr |
+
+### Examples
+
+```bash
+# Serve the default output
+graphify serve
+
+# Serve a specific graph file with verbose logging
+graphify serve ./my-project/graph.json --verbose
+
+# When running from source
+dotnet run --project src/Graphify.Cli -- serve graphify-out/graph.json
+```
+
+See [MCP Server](mcp-server.md) for client configuration and tool reference.
 
 ## Building from Source
 

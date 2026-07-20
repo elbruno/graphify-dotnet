@@ -24,3 +24,4 @@ obj/
 appsettings.local.json
 .tokensave/*
 .claude/PRPs/reports/surrealdb-phase1-schema-report.md
+nupkg/*

@@ -60,10 +60,20 @@ dotnet run --project src/Graphify.Cli -- benchmark graphify-out/graph.json
 **Export to multiple formats:**
 
 ```bash
-dotnet run --project src/Graphify.Cli -- run . --format json,html,svg,neo4j,obsidian,wiki,report
+dotnet run --project src/Graphify.Cli -- run . --format json,html,svg,neo4j,obsidian,wiki,report,surrealdb
 ```
 
 The HTML export gives you an interactive vis.js graph. Click nodes, search by concept, filter by community. The Neo4j export lets you load the entire graph into a real graph database.
+
+**Query through AI assistants with the MCP server:**
+
+```bash
+# Build the graph first, then run the MCP server
+dotnet run --project src/Graphify.Cli -- run . --format json
+graphify serve graphify-out/graph.json
+```
+
+Connect Claude Desktop or VS Code and ask "Find the shortest path between the auth module and the database." The server exposes 5 tools for searching, navigating, and analyzing your codebase graph. See the [MCP Server docs](mcp-server.md) for client setup.
 
 ## Key Features
 

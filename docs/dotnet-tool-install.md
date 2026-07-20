@@ -41,17 +41,84 @@ This installs the global tool and adds it to your PATH automatically.
 
 If you're developing or testing a local build:
 
-```bash
+**PowerShell:**
+
+```powershell
 # Build the NuGet package
-dotnet pack src/Graphify.Cli/ -c Release
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg
 
 # Install from your local build output
-dotnet tool install -g graphify-dotnet \
-  --add-source src/Graphify.Cli/bin/Release \
-  --allow-prerelease-versions
+dotnet tool install -g graphify-dotnet `
+  --add-source ./nupkg `
+  --prerelease
 ```
 
-### Method 3: From Source
+**Bash:**
+
+```bash
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg
+dotnet tool install -g graphify-dotnet \
+  --add-source ./nupkg \
+  --prerelease
+```
+
+The `--prerelease` flag is required if the version has a pre-release suffix (e.g. `0.8.0-preview.1`). Use `--no-cache` if you're reinstalling after a rebuild to avoid stale packages. To update after rebuilding:
+
+**PowerShell:**
+
+```powershell
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg
+dotnet tool update -g graphify-dotnet `
+  --add-source ./nupkg `
+  --prerelease
+```
+
+**Bash:**
+
+```bash
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg
+dotnet tool update -g graphify-dotnet \
+  --add-source ./nupkg \
+  --prerelease
+```
+
+### Method 3: Build for Pre-Release
+
+To build a pre-release version (before tagging a release), override the version suffix on all packages:
+
+**PowerShell:**
+
+```powershell
+dotnet pack src/Graphify/ -c Release -o ./nupkg `
+  /p:Version=0.8.0-preview.1
+dotnet pack src/Graphify.Sdk/ -c Release -o ./nupkg `
+  /p:Version=0.8.0-preview.1
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg `
+  /p:Version=0.8.0-preview.1
+```
+
+**Bash:**
+
+```bash
+dotnet pack src/Graphify/ -c Release -o ./nupkg \
+  /p:Version=0.8.0-preview.1
+dotnet pack src/Graphify.Sdk/ -c Release -o ./nupkg \
+  /p:Version=0.8.0-preview.1
+dotnet pack src/Graphify.Cli/ -c Release -o ./nupkg \
+  /p:Version=0.8.0-preview.1
+```
+
+The pre-release label follows [SemVer 2.0](https://semver.org): e.g. `0.8.0-preview.1`, `0.8.0-alpha.1`, `0.8.0-rc.1`. The suffix appears in the `.nupkg` filename and the `--prerelease` flag is required during `dotnet tool install` to resolve it.
+
+Packages produced:
+
+| Package | File |
+|---------|------|
+| Graphify (core library) | `nupkg\graphify-dotnet-core.*.nupkg` |
+| Graphify.Sdk | `nupkg\graphify-dotnet-sdk.*.nupkg` |
+| Graphify.Cli (global tool) | `nupkg\graphify-dotnet.*.nupkg` + `.snupkg` |
+
+### Method 4: From Source
 
 For quick testing without installing globally:
 
