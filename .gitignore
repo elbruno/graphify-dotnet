@@ -22,3 +22,5 @@ obj/
 
 # Local config (may contain secrets)
 appsettings.local.json
+.claude/*
+.tokensave/*
