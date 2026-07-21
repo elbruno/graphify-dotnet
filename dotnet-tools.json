@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "isRoot": true,
+  "tools": {
+    "graphify-dotnet": {
+      "version": "0.9.0-preview.15",
+      "commands": [
+        "graphify"
+      ],
+      "rollForward": false
+    }
+  }
+}

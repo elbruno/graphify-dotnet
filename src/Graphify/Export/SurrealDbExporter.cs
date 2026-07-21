@@ -64,15 +64,18 @@ public sealed class SurrealDbExporter : IGraphExporter
     internal async Task ExportEmbeddedAsync(KnowledgeGraph graph, string outputPath,
         CancellationToken cancellationToken)
     {
+        var ns = _namespace ?? "graphify";
+        var dbName = _database ?? "codebase";
+
         if (_testClient is not null)
         {
-            await _testClient.Use("graphify", "codebase");
+            await _testClient.Use(ns, dbName);
             await ExportToClientAsync(_testClient, graph, cancellationToken);
             return;
         }
 
         await using var db = CreateRocksDbClient(outputPath);
-        await db.Use("graphify", "codebase");
+        await db.Use(ns, dbName);
         await ExportToClientAsync(db, graph, cancellationToken);
     }
 
@@ -87,31 +90,40 @@ public sealed class SurrealDbExporter : IGraphExporter
         return new SurrealDbRocksDbClient(outputPath);
     }
 
-private async Task ExportRemoteAsync(KnowledgeGraph graph,
-    CancellationToken cancellationToken)
-{
-    var configuration = SurrealDbOptions
-        .Create()
-        .WithEndpoint(_endpoint!)
-        .WithNamespace(_namespace ?? "graphify")
-        .WithDatabase(_database ?? "codebase")
-        .WithUsername(_username)
-        .WithPassword(_password)
-        .Build();
-
-    await using var db = new SurrealDbClient(configuration);
-
-    if (_username is not null)
+    private async Task ExportRemoteAsync(KnowledgeGraph graph,
+        CancellationToken cancellationToken)
     {
-        await db.SignIn(new RootAuth
-        {
-            Username = _username,
-            Password = _password ?? ""
-        });
-    }
+        var ns = _namespace ?? "graphify";
+        var dbName = _database ?? "codebase";
 
-    await ExportToClientAsync(db, graph, cancellationToken);
-}
+        // Connect without pre-selecting NS/DB — they may not exist yet on the
+        // remote server and would cause a connection-time failure.
+        var configuration = SurrealDbOptions
+            .Create()
+            .WithEndpoint(_endpoint!)
+            .WithUsername(_username)
+            .WithPassword(_password)
+            .Build();
+
+        await using var db = new SurrealDbClient(configuration);
+
+        if (_username is not null)
+        {
+            await db.SignIn(new RootAuth
+            {
+                Username = _username,
+                Password = _password ?? ""
+            });
+        }
+
+        // Remote SurrealDB does not auto-create namespaces/databases; define
+        // them (as root) before selecting them.
+        await db.RawQuery($"DEFINE NAMESPACE IF NOT EXISTS {ns};", cancellationToken: cancellationToken);
+        await db.RawQuery($"USE NS {ns}; DEFINE DATABASE IF NOT EXISTS {dbName};", cancellationToken: cancellationToken);
+        await db.Use(ns, dbName);
+
+        await ExportToClientAsync(db, graph, cancellationToken);
+    }
 
     private static async Task ExportToClientAsync(ISurrealDbClient db,
         KnowledgeGraph graph, CancellationToken cancellationToken)
@@ -121,22 +133,38 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
         var nodes = graph.GetNodes().ToList();
         var edges = graph.GetEdges().ToList();
 
+        // Use parameterized RawQuery (CREATE ... CONTENT) instead of the typed
+        // Create<T> overload. Create<T>(table, data) deserializes the server
+        // response back into T, and that response shape (single object vs array)
+        // varies by SurrealDB version — the mismatch surfaces as a CBOR
+        // "Expected major type Map (5)" error. RawQuery returns a generic
+        // response whose result bytes are never deserialized into a typed
+        // record, so it is immune to that version ambiguity.
         foreach (var node in nodes)
         {
             var escapedId = Uri.EscapeDataString(node.Id);
-            await db.Create("entity", new SurrealDbEntity
+            var parameters = new Dictionary<string, object?>
             {
-                Id = (RecordId)("entity", escapedId),
-                label = node.Label,
-                kind = node.Type,
-                filePath = node.FilePath,
-                language = node.Language,
-                confidence = node.Confidence.ToString().ToUpperInvariant(),
-                community = node.Community,
-                metadata = node.Metadata is { Count: > 0 }
-                    ? node.Metadata.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value)
+                ["id"] = escapedId,
+                ["label"] = node.Label,
+                ["kind"] = node.Type,
+                ["filePath"] = node.FilePath,
+                ["language"] = node.Language,
+                ["confidence"] = node.Confidence.ToString().ToUpperInvariant(),
+                ["community"] = node.Community,
+                ["metadata"] = node.Metadata is { Count: > 0 }
+                    ? node.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
                     : null
-            });
+            };
+
+            var response = await db.RawQuery(
+                "CREATE type::thing('entity', $id) CONTENT { "
+                    + "label: $label, kind: $kind, filePath: $filePath, "
+                    + "language: $language, confidence: $confidence, "
+                    + "community: $community, metadata: $metadata };",
+                parameters,
+                cancellationToken);
+            response.EnsureAllOks();
         }
 
         for (int i = 0; i < edges.Count; i++)
@@ -144,18 +172,27 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
             var edge = edges[i];
             var escapedSource = Uri.EscapeDataString(edge.Source.Id);
             var escapedTarget = Uri.EscapeDataString(edge.Target.Id);
-            await db.Create("relationship", new SurrealDbRelationship
+            var parameters = new Dictionary<string, object?>
             {
-                Id = (RecordId)("relationship", escapedSource + "->" + escapedTarget + "-" + i),
-                source = (RecordId)("entity", escapedSource),
-                target = (RecordId)("entity", escapedTarget),
-                type = edge.Relationship,
-                weight = edge.Weight,
-                confidence = edge.Confidence.ToString().ToUpperInvariant(),
-                metadata = edge.Metadata is { Count: > 0 }
-                    ? edge.Metadata.ToDictionary(kvp => kvp.Key, kvp => (object?)kvp.Value)
+                ["id"] = escapedSource + "->" + escapedTarget + "-" + i,
+                ["source"] = (RecordId)("entity", escapedSource),
+                ["target"] = (RecordId)("entity", escapedTarget),
+                ["type"] = edge.Relationship,
+                ["weight"] = edge.Weight,
+                ["confidence"] = edge.Confidence.ToString().ToUpperInvariant(),
+                ["metadata"] = edge.Metadata is { Count: > 0 }
+                    ? edge.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
                     : null
-            });
+            };
+
+            var response = await db.RawQuery(
+                "CREATE type::thing('relationship', $id) CONTENT { "
+                    + "source: $source, target: $target, type: $type, "
+                    + "weight: $weight, confidence: $confidence, "
+                    + "metadata: $metadata };",
+                parameters,
+                cancellationToken);
+            response.EnsureAllOks();
         }
     }
 
@@ -166,37 +203,6 @@ private async Task ExportRemoteAsync(KnowledgeGraph graph,
             DEFINE TABLE IF NOT EXISTS entity;
             DEFINE TABLE IF NOT EXISTS relationship;
             """);
-    }
-
-    /// <summary>
-    /// Concrete type for SurrealDB entity records.
-    /// Dahomey.Cbor cannot serialize anonymous types; concrete types are required.
-    /// </summary>
-    internal sealed class SurrealDbEntity
-    {
-        public RecordId? Id { get; set; }
-        public string? label { get; set; }
-        public string? kind { get; set; }
-        public string? filePath { get; set; }
-        public string? language { get; set; }
-        public string? confidence { get; set; }
-        public int? community { get; set; }
-        public Dictionary<string, object?>? metadata { get; set; }
-    }
-
-    /// <summary>
-    /// Concrete type for SurrealDB relationship records.
-    /// Dahomey.Cbor cannot serialize anonymous types; concrete types are required.
-    /// </summary>
-    internal sealed class SurrealDbRelationship
-    {
-        public RecordId? Id { get; set; }
-        public RecordId? source { get; set; }
-        public RecordId? target { get; set; }
-        public string? type { get; set; }
-        public double weight { get; set; }
-        public string? confidence { get; set; }
-        public Dictionary<string, object?>? metadata { get; set; }
     }
 
 }

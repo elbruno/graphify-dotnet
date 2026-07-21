@@ -190,24 +190,9 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
     var path = parseResult.GetValue(runPathArg)!;
     var output = parseResult.GetValue(runOutputOpt)!;
     var format = parseResult.GetValue(runFormatOpt)!;
-    var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
     var useConfigWizard = parseResult.GetValue(runConfigOpt);
 
-    // Apply saved config defaults when CLI arguments are at their default values
-    var savedConfig = ConfigPersistence.Load();
-    if (savedConfig != null)
-    {
-        if (path == "." && savedConfig.WorkingFolder != null)
-            path = savedConfig.WorkingFolder;
-        if (output == "graphify-out" && savedConfig.OutputFolder != null)
-            output = savedConfig.OutputFolder;
-        if (format == "json,html,report" && savedConfig.ExportFormats != null)
-        {
-            format = savedConfig.ExportFormats;
-            formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        }
-    }
-
+    // ── Optionally run config wizard (saves to appsettings.local.json) ─────
     if (useConfigWizard)
     {
         var existingConfig = ConfigPersistence.Load();
@@ -216,10 +201,7 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
         AnsiConsole.WriteLine();
     }
 
-    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
-        runVerboseOpt, runProviderOpt, runEndpointOpt, runApiKeyOpt, runModelOpt, runDeploymentOpt,
-        ignoreProviderOptions: useConfigWizard);
-
+    // ── Build configuration from all sources ─────────────────────────────
     var surrealOptions = new CliSurrealOptions
     {
         Endpoint = parseResult.GetValue(runSurrealEndpointOpt),
@@ -233,6 +215,26 @@ runCommand.SetAction(async (parseResult, cancellationToken) =>
     var graphifyConfig = new GraphifyConfig();
     configuration.GetSection("Graphify").Bind(graphifyConfig);
 
+    // ── Resolve export formats with proper priority ────────────────────────
+    // CLI --format > config (.env, user-secrets, saved) > built-in default
+    if (format == "json,html,report" && graphifyConfig.ExportFormats != null)
+    {
+        format = graphifyConfig.ExportFormats;
+    }
+    var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    // Apply config-sourced defaults when CLI args are at their defaults
+    if (path == "." && graphifyConfig.WorkingFolder != null)
+        path = graphifyConfig.WorkingFolder;
+    if (output == "graphify-out" && graphifyConfig.OutputFolder != null)
+        output = graphifyConfig.OutputFolder;
+
+    // ── Resolve AI provider ──────────────────────────────────────────────
+    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
+        runVerboseOpt, runProviderOpt, runEndpointOpt, runApiKeyOpt, runModelOpt, runDeploymentOpt,
+        ignoreProviderOptions: useConfigWizard);
+
+    // ── Run pipeline ──────────────────────────────────────────────────────
     var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient, graphifyConfig.SurrealDb);
     var graph = await runner.RunAsync(path, output, formats, useCache: true, cancellationToken);
     return graph != null ? 0 : 1;
@@ -258,11 +260,8 @@ watchCommand.SetAction(async (parseResult, cancellationToken) =>
     var path = parseResult.GetValue(watchPathArg)!;
     var output = parseResult.GetValue(watchOutputOpt)!;
     var format = parseResult.GetValue(watchFormatOpt)!;
-    var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 
-    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
-        watchVerboseOpt, watchProviderOpt, watchEndpointOpt, watchApiKeyOpt, watchModelOpt, watchDeploymentOpt);
-
+    // ── Build configuration from all sources ─────────────────────────────
     var surrealOptions = new CliSurrealOptions
     {
         Endpoint = parseResult.GetValue(watchSurrealEndpointOpt),
@@ -276,6 +275,19 @@ watchCommand.SetAction(async (parseResult, cancellationToken) =>
     var graphifyConfig = new GraphifyConfig();
     configuration.GetSection("Graphify").Bind(graphifyConfig);
 
+    // ── Resolve export formats with proper priority ────────────────────────
+    // CLI --format > config (.env, user-secrets, saved) > built-in default
+    if (format == "json,html,report" && graphifyConfig.ExportFormats != null)
+    {
+        format = graphifyConfig.ExportFormats;
+    }
+    var formats = format.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+    // ── Resolve AI provider ──────────────────────────────────────────────
+    var (chatClient, verbose) = await ResolveProviderAsync(parseResult,
+        watchVerboseOpt, watchProviderOpt, watchEndpointOpt, watchApiKeyOpt, watchModelOpt, watchDeploymentOpt);
+
+    // ── Run pipeline ──────────────────────────────────────────────────────
     Console.WriteLine("Running initial pipeline...");
     Console.WriteLine();
     var runner = new Graphify.Cli.PipelineRunner(Console.Out, verbose, chatClient, graphifyConfig.SurrealDb);

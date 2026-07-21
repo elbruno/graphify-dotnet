@@ -85,6 +85,8 @@ GRAPHIFY__OpenAi__ModelId=deepseek-v4-flash-free
 
 > **Security:** Add `.env` to your `.gitignore` to avoid committing secrets.
 
+> **Tip:** A comprehensive `.env.example` file with all available options is available in the [`docs/`](.env.example) folder.
+
 ## Environment Variables
 
 All settings use the `GRAPHIFY__` prefix with double-underscore nesting:
