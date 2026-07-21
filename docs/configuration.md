@@ -64,11 +64,26 @@ Settings are resolved in priority order (highest wins):
 |----------|--------|---------|
 | 1 (highest) | **CLI arguments** | `--provider ollama --model codellama` |
 | 2 | **User secrets** | `dotnet user-secrets set "Graphify:Provider" "Ollama"` |
-| 3 | **Environment variables** | `GRAPHIFY__Provider=ollama` |
-| 4 | **appsettings.local.json** | Saved by `graphify config` wizard |
-| 5 (lowest) | **appsettings.json** | Built-in defaults |
+| 3 | **.env file** | `GRAPHIFY__Provider=OpenAi` in `.env` |
+| 4 | **Environment variables** | `GRAPHIFY__Provider=ollama` |
+| 5 | **appsettings.local.json** | Saved by `graphify config` wizard |
+| 6 (lowest) | **appsettings.json** | Built-in defaults |
 
 This means CLI flags always override everything else, user secrets override environment variables, and so on.
+
+## .env File
+
+For local development, create a `.env` file in the project root directory. Graphify loads it automatically at startup. This is useful for keeping API keys out of your shell history or IDE configuration.
+
+```bash
+# .env file — loaded automatically by graphify
+GRAPHIFY__Provider=OpenAi
+GRAPHIFY__OpenAi__Endpoint=https://opencode.ai/zen/v1
+GRAPHIFY__OpenAi__ApiKey=sk-opencode-zen-...
+GRAPHIFY__OpenAi__ModelId=deepseek-v4-flash-free
+```
+
+> **Security:** Add `.env` to your `.gitignore` to avoid committing secrets.
 
 ## Environment Variables
 

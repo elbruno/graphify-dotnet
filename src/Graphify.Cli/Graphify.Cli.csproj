@@ -26,6 +26,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="DotNetEnv" Version="3.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.*" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.*" />

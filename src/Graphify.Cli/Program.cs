@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Text.Json;
+using DotNetEnv;
 using Graphify.Cli.Configuration;
 using Graphify.Cli.Init;
 using Graphify.Cli.Mcp;
@@ -16,6 +17,8 @@ using Spectre.Console;
 using SurrealDb.Embedded.RocksDb;
 using SurrealDb.Net;
 using SurrealDb.Net.Models.Auth;
+
+Env.Load();
 
 var rootCommand = new RootCommand("graphify-dotnet: AI-powered knowledge graph builder for codebases");
 
