@@ -497,6 +497,7 @@ var client = ChatClientFactory.Create(options);
 
 ## See Also
 
+- [Using graphify-dotnet with OpenAI (Compatible) Endpoints](./setup-openai.md)
 - [Using graphify-dotnet with Azure OpenAI](./setup-azure-openai.md)
 - [Using graphify-dotnet with GitHub Copilot SDK](./setup-copilot-sdk.md)
 - [Ollama Documentation](https://ollama.com)

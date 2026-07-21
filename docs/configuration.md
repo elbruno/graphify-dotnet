@@ -149,7 +149,6 @@ This opens the interactive wizard, saves your choices, then immediately runs the
 For detailed setup instructions per provider:
 
 - [Azure OpenAI Setup](setup-azure-openai.md)
+- [OpenAI (Compatible) Setup](setup-openai.md)
 - [Ollama Setup](setup-ollama.md)
 - [Copilot SDK Setup](setup-copilot-sdk.md)
-
-The generic **OpenAI (compatible)** provider works with any OpenAI-compatible endpoint — simply configure an endpoint URL, API key, and model ID. No separate setup guide required.

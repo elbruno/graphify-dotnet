@@ -313,6 +313,7 @@ When using the CLI (`graphify run`), this is handled automatically.
 
 ## See Also
 
+- [Using graphify-dotnet with OpenAI (Compatible) Endpoints](./setup-openai.md)
 - [Using graphify-dotnet with Azure OpenAI](./setup-azure-openai.md)
 - [Using graphify-dotnet with Ollama (Local Models)](./setup-ollama.md)
 - [GitHub Copilot Documentation](https://docs.github.com/en/copilot)
