@@ -4,6 +4,7 @@ using SurrealDb.Net;
 using Microsoft.Extensions.DependencyInjection;
 using SurrealDb.Net.Models;
 using SurrealDb.Net.Models.Auth;
+using SurrealDb.Net.Models.Response;
 
 namespace Graphify.Export;
 
@@ -159,22 +160,28 @@ public sealed class SurrealDbExporter : IGraphExporter
                 : null
         }).ToList();
 
-        // Full-snapshot reconciliation in a single transaction: wipe the existing
-        // graph and reload it from the current snapshot. Both `run` and `watch`
-        // re-export the complete graph, so this makes the database mirror the
-        // codebase exactly — nodes/edges from deleted or edited-away code are
-        // removed (no orphans), and re-running never duplicates or errors on
-        // existing ids. Wrapping the delete+insert in BEGIN/COMMIT keeps it atomic:
-        // a concurrent reader sees either the entire previous graph or the entire
-        // new one, never a half-swept state. Entity ids are deterministic
-        // (entity:<nodeId>) so agent-held references stay stable across runs; edges
-        // are first-class graph edges (INSERT RELATION) supporting server-side
-        // traversal, inline degree, and +shortest.
+        // Clear the existing graph FIRST in its own request so the DELETEs are fully
+        // committed before we try to INSERT with the same deterministic IDs. SurrealDB
+        // transactions keep tombstoned records visible within the transaction scope, so
+        // DELETE + INSERT in the same transaction would fail with "already exists".
         //
-        // The whole snapshot is sent in one request because a SurrealDB transaction
-        // cannot span multiple stateless HTTP calls. CBOR keeps the payload compact;
-        // for very large graphs this trades a bigger single request for atomicity.
-        var statements = new List<string> { "BEGIN;", "DELETE relationship;", "DELETE entity;" };
+        // The risk of a crash between the DELETE and the INSERT (leaving an empty DB) is
+        // acceptable: both `run` and `watch` re-export the complete graph, so the next
+        // invocation restores it. Atomicity of the INSERT side is maintained by wrapping
+        // the inserts in their own BEGIN/COMMIT.
+        var deleteResponse = await db.RawQuery(
+            "DELETE relationship; DELETE entity;",
+            cancellationToken: cancellationToken);
+        EnsureSuccess(deleteResponse, "DELETE relationship; DELETE entity;");
+
+        if (items.Count == 0 && rels.Count == 0)
+        {
+            return; // Nothing to insert, graph is already empty
+        }
+
+        // Atomic insert: all or nothing. A concurrent reader sees either the empty post-
+        // DELETE state or the complete new graph, never a half-inserted snapshot.
+        var statements = new List<string> { "BEGIN;" };
         var parameters = new Dictionary<string, object?>();
 
         if (items.Count > 0)
@@ -191,12 +198,37 @@ public sealed class SurrealDbExporter : IGraphExporter
 
         statements.Add("COMMIT;");
 
-        var response = await db.RawQuery(
-            string.Join(" ", statements),
-            parameters,
-            cancellationToken);
-        response.EnsureAllOks();
+        var query = string.Join(" ", statements);
+        var response = await db.RawQuery(query, parameters, cancellationToken);
+        EnsureSuccess(response, query);
     }
+
+    /// <summary>
+    /// Throws with the actual SurrealDB error text instead of the SDK's opaque
+    /// "SurrealDbResponse is unsuccessful" message, so failures are diagnosable.
+    /// </summary>
+    private static void EnsureSuccess(SurrealDbResponse response, string query)
+    {
+        if (!response.HasErrors)
+        {
+            return;
+        }
+
+        var details = string.Join(" | ", response.Errors.Select(DescribeError));
+        throw new InvalidOperationException(
+            $"SurrealDB query failed: {details}{Environment.NewLine}Query: {query}");
+    }
+
+    private static string DescribeError(ISurrealDbErrorResult error) => error switch
+    {
+        SurrealDbErrorResult e => string.IsNullOrWhiteSpace(e.Details)
+            ? $"{e.Status} ({e.Kind})"
+            : e.Details,
+        SurrealDbProtocolErrorResult p => string.Join(" - ",
+            new[] { $"HTTP {(int)p.Code}", p.Description, p.Details, p.Information }
+                .Where(s => !string.IsNullOrWhiteSpace(s))),
+        _ => "unknown error result"
+    };
 
     private static async Task DefineSchemaAsync(ISurrealDbClient db)
     {
