@@ -4,6 +4,7 @@ using DotNetEnv;
 using Graphify.Cli.Configuration;
 using Graphify.Cli.Init;
 using Graphify.Cli.Mcp;
+using Graphify.Export;
 using Graphify.Graph;
 using Graphify.Models;
 using Graphify.Pipeline;
@@ -300,7 +301,12 @@ watchCommand.SetAction(async (parseResult, cancellationToken) =>
     }
 
     Console.WriteLine();
-    using var watchMode = new WatchMode(Console.Out, verbose);
+    using var watchMode = new WatchMode(Console.Out, verbose, new SurrealDbExportOptions(
+        graphifyConfig.SurrealDb.Endpoint,
+        graphifyConfig.SurrealDb.Username,
+        graphifyConfig.SurrealDb.Password,
+        graphifyConfig.SurrealDb.Namespace,
+        graphifyConfig.SurrealDb.Database));
     watchMode.SetInitialGraph(graph);
     await watchMode.WatchAsync(path, output, formats, cancellationToken);
     return 0;

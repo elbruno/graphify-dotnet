@@ -214,6 +214,57 @@ public sealed class KnowledgeGraph
     }
 
     /// <summary>
+    /// Removes every node extracted from <paramref name="filePath"/> along with all
+    /// edges those nodes participate in, so symbols deleted or edited away in that
+    /// file do not linger as orphans after a re-merge.
+    /// </summary>
+    /// <remarks>
+    /// Incremental extraction of a single file reproduces only that file's own
+    /// (outbound) edges — it cannot re-create inbound edges owned by other files.
+    /// To avoid dropping cross-file relationships when a node survives the edit,
+    /// this returns the removed edges whose source lives in a different file. The
+    /// caller should re-add them after merging the file's fresh extraction; edges
+    /// whose endpoints no longer exist are harmlessly skipped by <see cref="AddEdge"/>.
+    /// </remarks>
+    public IReadOnlyList<GraphEdge> RemoveByFile(string filePath)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(filePath);
+
+        var owned = _graph.Vertices
+            .Where(n => n.FilePath is { } fp &&
+                        string.Equals(fp, filePath, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+
+        if (owned.Count == 0)
+        {
+            return Array.Empty<GraphEdge>();
+        }
+
+        // Capture inbound edges from OTHER files before the vertices (and their
+        // edges) are removed, so cross-file relationships can be restored later.
+        var foreignEdges = new List<GraphEdge>();
+        foreach (var node in owned)
+        {
+            foreach (var edge in _graph.InEdges(node))
+            {
+                if (edge.Source.FilePath is not { } sourceFile ||
+                    !string.Equals(sourceFile, filePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    foreignEdges.Add(edge);
+                }
+            }
+        }
+
+        foreach (var node in owned)
+        {
+            _graph.RemoveVertex(node); // cascades removal of its in/out edges
+            _nodeIndex.Remove(node.Id);
+        }
+
+        return foreignEdges.Distinct().ToList();
+    }
+
+    /// <summary>
     /// Access the underlying QuikGraph for advanced algorithms.
     /// Use sparingly - prefer KnowledgeGraph methods for common operations.
     /// </summary>

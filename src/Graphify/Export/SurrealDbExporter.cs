@@ -133,75 +133,82 @@ public sealed class SurrealDbExporter : IGraphExporter
         var nodes = graph.GetNodes().ToList();
         var edges = graph.GetEdges().ToList();
 
-        // Use parameterized RawQuery (CREATE ... CONTENT) instead of the typed
-        // Create<T> overload. Create<T>(table, data) deserializes the server
-        // response back into T, and that response shape (single object vs array)
-        // varies by SurrealDB version — the mismatch surfaces as a CBOR
-        // "Expected major type Map (5)" error. RawQuery returns a generic
-        // response whose result bytes are never deserialized into a typed
-        // record, so it is immune to that version ambiguity.
-        foreach (var node in nodes)
+        var items = nodes.Select(node => new Dictionary<string, object?>
         {
-            var escapedId = Uri.EscapeDataString(node.Id);
-            var parameters = new Dictionary<string, object?>
-            {
-                ["id"] = escapedId,
-                ["label"] = node.Label,
-                ["kind"] = node.Type,
-                ["filePath"] = node.FilePath,
-                ["language"] = node.Language,
-                ["confidence"] = node.Confidence.ToString().ToUpperInvariant(),
-                ["community"] = node.Community,
-                ["metadata"] = node.Metadata is { Count: > 0 }
-                    ? node.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                    : null
-            };
+            ["id"] = (RecordId)("entity", Uri.EscapeDataString(node.Id)),
+            ["label"] = node.Label,
+            ["kind"] = node.Type,
+            ["filePath"] = node.FilePath,
+            ["language"] = node.Language,
+            ["confidence"] = node.Confidence.ToString().ToUpperInvariant(),
+            ["community"] = node.Community,
+            ["metadata"] = node.Metadata is { Count: > 0 }
+                ? node.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                : null
+        }).ToList();
 
-            var response = await db.RawQuery(
-                "CREATE type::thing('entity', $id) CONTENT { "
-                    + "label: $label, kind: $kind, filePath: $filePath, "
-                    + "language: $language, confidence: $confidence, "
-                    + "community: $community, metadata: $metadata };",
-                parameters,
-                cancellationToken);
-            response.EnsureAllOks();
+        var rels = edges.Select(edge => new Dictionary<string, object?>
+        {
+            ["in"] = (RecordId)("entity", Uri.EscapeDataString(edge.Source.Id)),
+            ["out"] = (RecordId)("entity", Uri.EscapeDataString(edge.Target.Id)),
+            ["type"] = edge.Relationship,
+            ["weight"] = edge.Weight,
+            ["confidence"] = edge.Confidence.ToString().ToUpperInvariant(),
+            ["metadata"] = edge.Metadata is { Count: > 0 }
+                ? edge.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
+                : null
+        }).ToList();
+
+        // Full-snapshot reconciliation in a single transaction: wipe the existing
+        // graph and reload it from the current snapshot. Both `run` and `watch`
+        // re-export the complete graph, so this makes the database mirror the
+        // codebase exactly — nodes/edges from deleted or edited-away code are
+        // removed (no orphans), and re-running never duplicates or errors on
+        // existing ids. Wrapping the delete+insert in BEGIN/COMMIT keeps it atomic:
+        // a concurrent reader sees either the entire previous graph or the entire
+        // new one, never a half-swept state. Entity ids are deterministic
+        // (entity:<nodeId>) so agent-held references stay stable across runs; edges
+        // are first-class graph edges (INSERT RELATION) supporting server-side
+        // traversal, inline degree, and +shortest.
+        //
+        // The whole snapshot is sent in one request because a SurrealDB transaction
+        // cannot span multiple stateless HTTP calls. CBOR keeps the payload compact;
+        // for very large graphs this trades a bigger single request for atomicity.
+        var statements = new List<string> { "BEGIN;", "DELETE relationship;", "DELETE entity;" };
+        var parameters = new Dictionary<string, object?>();
+
+        if (items.Count > 0)
+        {
+            statements.Add("INSERT INTO entity $items;");
+            parameters["items"] = items;
         }
 
-        for (int i = 0; i < edges.Count; i++)
+        if (rels.Count > 0)
         {
-            var edge = edges[i];
-            var escapedSource = Uri.EscapeDataString(edge.Source.Id);
-            var escapedTarget = Uri.EscapeDataString(edge.Target.Id);
-            var parameters = new Dictionary<string, object?>
-            {
-                ["id"] = escapedSource + "->" + escapedTarget + "-" + i,
-                ["source"] = (RecordId)("entity", escapedSource),
-                ["target"] = (RecordId)("entity", escapedTarget),
-                ["type"] = edge.Relationship,
-                ["weight"] = edge.Weight,
-                ["confidence"] = edge.Confidence.ToString().ToUpperInvariant(),
-                ["metadata"] = edge.Metadata is { Count: > 0 }
-                    ? edge.Metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value)
-                    : null
-            };
-
-            var response = await db.RawQuery(
-                "CREATE type::thing('relationship', $id) CONTENT { "
-                    + "source: $source, target: $target, type: $type, "
-                    + "weight: $weight, confidence: $confidence, "
-                    + "metadata: $metadata };",
-                parameters,
-                cancellationToken);
-            response.EnsureAllOks();
+            statements.Add("INSERT RELATION INTO relationship $rels;");
+            parameters["rels"] = rels;
         }
+
+        statements.Add("COMMIT;");
+
+        var response = await db.RawQuery(
+            string.Join(" ", statements),
+            parameters,
+            cancellationToken);
+        response.EnsureAllOks();
     }
 
     private static async Task DefineSchemaAsync(ISurrealDbClient db)
     {
         // Schema definition. Separate statements with semicolons for SurrealQL compatibility.
+        // Indexes support the backend's server-side queries: community filtering/grouping
+        // and relationship-type aggregation.
         await db.Query($"""
             DEFINE TABLE IF NOT EXISTS entity;
             DEFINE TABLE IF NOT EXISTS relationship;
+            DEFINE INDEX IF NOT EXISTS idx_entity_community ON entity FIELDS community;
+            DEFINE INDEX IF NOT EXISTS idx_entity_kind ON entity FIELDS kind;
+            DEFINE INDEX IF NOT EXISTS idx_relationship_type ON relationship FIELDS type;
             """);
     }
 

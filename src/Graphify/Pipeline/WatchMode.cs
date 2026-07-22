@@ -20,13 +20,15 @@ public sealed class WatchMode : IDisposable
     private readonly bool _verbose;
     private readonly ConcurrentDictionary<string, DateTimeOffset> _pendingChanges = new();
     private readonly SemaphoreSlim _processLock = new(1, 1);
+    private readonly SurrealDbExportOptions? _surrealDb;
 
     private KnowledgeGraph? _currentGraph;
 
-    public WatchMode(TextWriter output, bool verbose = false)
+    public WatchMode(TextWriter output, bool verbose = false, SurrealDbExportOptions? surrealDb = null)
     {
         _output = output ?? throw new ArgumentNullException(nameof(output));
         _verbose = verbose;
+        _surrealDb = surrealDb;
         _cache = new SemanticCache();
         _watcher = new FileSystemWatcher
         {
@@ -190,8 +192,9 @@ public sealed class WatchMode : IDisposable
             // Filter to changed files only
             var changedSet = new HashSet<string>(trulyChanged, StringComparer.OrdinalIgnoreCase);
             var filesToProcess = allDetected.Where(d => changedSet.Contains(d.FilePath)).ToList();
+            var deletedFiles = trulyChanged.Where(f => !File.Exists(f)).ToList();
 
-            if (filesToProcess.Count == 0)
+            if (filesToProcess.Count == 0 && deletedFiles.Count == 0)
             {
                 await _output.WriteLineAsync("  (no processable files in change set)");
                 return;
@@ -230,7 +233,7 @@ public sealed class WatchMode : IDisposable
                 }
             }
 
-            if (newResults.Count == 0)
+            if (newResults.Count == 0 && deletedFiles.Count == 0)
             {
                 await _output.WriteLineAsync("  (no extractable content)");
                 return;
@@ -245,8 +248,41 @@ public sealed class WatchMode : IDisposable
             });
 
             var buildStopwatch = Stopwatch.StartNew();
-            var incrementalGraph = await graphBuilder.ExecuteAsync(newResults, ct);
-            _currentGraph!.MergeGraph(incrementalGraph);
+
+            // Orphan removal: drop each changed/deleted file's previous nodes+edges
+            // before merging its fresh extraction. This purges symbols that were
+            // deleted or edited away (deleted files never come back, since they are
+            // not in the incremental graph). RemoveByFile hands back inbound edges
+            // from OTHER files so we can restore cross-file relationships that a
+            // single-file extraction cannot reproduce.
+            var changedFileSet = new HashSet<string>(trulyChanged, StringComparer.OrdinalIgnoreCase);
+            var preservedEdges = new List<GraphEdge>();
+            foreach (var changedFile in trulyChanged)
+            {
+                preservedEdges.AddRange(_currentGraph!.RemoveByFile(changedFile));
+            }
+
+            // Merge the fresh extraction for files that still exist. A delete-only
+            // batch has no new results — the removal above already reconciled the graph.
+            if (newResults.Count > 0)
+            {
+                var incrementalGraph = await graphBuilder.ExecuteAsync(newResults, ct);
+                _currentGraph!.MergeGraph(incrementalGraph);
+            }
+
+            // Restore preserved cross-file edges. Skip any whose source file was
+            // itself re-extracted (the merge already reproduced those, so restoring
+            // would duplicate them); AddEdge drops edges whose endpoints are gone.
+            foreach (var edge in preservedEdges.Distinct())
+            {
+                if (edge.Source.FilePath is { } sourceFile && changedFileSet.Contains(sourceFile))
+                {
+                    continue;
+                }
+
+                _currentGraph!.AddEdge(edge);
+            }
+
             if (_verbose)
             {
                 await _output.WriteLineAsync($"  Graph merge completed in {FormatElapsed(buildStopwatch.Elapsed)}");
@@ -261,7 +297,7 @@ public sealed class WatchMode : IDisposable
                 MinSplitSize = 5,
                 MaxCommunityFraction = 0.2
             });
-            _currentGraph = await clusterEngine.ExecuteAsync(_currentGraph, ct);
+            _currentGraph = await clusterEngine.ExecuteAsync(_currentGraph!, ct);
             if (_verbose)
             {
                 await _output.WriteLineAsync($"  Re-clustering completed in {FormatElapsed(clusterStopwatch.Elapsed)}");
@@ -272,14 +308,25 @@ public sealed class WatchMode : IDisposable
             Directory.CreateDirectory(outputDir);
             foreach (var format in formats)
             {
-                var outputPath = Path.Combine(outputDir, $"graph.{format}");
                 switch (format.ToLowerInvariant())
                 {
                     case "json":
-                        await new JsonExporter().ExportAsync(_currentGraph, outputPath, ct);
+                        await new JsonExporter().ExportAsync(_currentGraph, Path.Combine(outputDir, "graph.json"), ct);
                         break;
                     case "html":
-                        await new HtmlExporter().ExportAsync(_currentGraph, outputPath, cancellationToken: ct);
+                        await new HtmlExporter().ExportAsync(_currentGraph, Path.Combine(outputDir, "graph.html"), cancellationToken: ct);
+                        break;
+                    case "surrealdb":
+                        // Mirror the full graph into SurrealDB. The exporter performs a
+                        // transactional wipe-and-reload, so each watch update leaves the
+                        // database an exact mirror of the current codebase (no orphans).
+                        var surrealExporter = new SurrealDbExporter(
+                            endpoint: _surrealDb?.Endpoint,
+                            username: _surrealDb?.Username,
+                            password: _surrealDb?.Password,
+                            ns: _surrealDb?.Namespace,
+                            database: _surrealDb?.Database);
+                        await surrealExporter.ExportAsync(_currentGraph, Path.Combine(outputDir, "codebase.db"), ct);
                         break;
                 }
             }
